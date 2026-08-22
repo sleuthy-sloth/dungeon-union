@@ -46,13 +46,16 @@ func set_accessibility(settings: AccessibilitySettings) -> void:
 	_settings = settings.normalized_copy()
 	scale = Vector2.ONE
 	if _content != null:
-		_content.scale = Vector2.ONE * _settings.ui_scale
+		_content.scale = Vector2.ONE
 		_content.custom_minimum_size = Vector2(1440, 900) * _settings.ui_scale
 	for child in find_children("*", "Control", true, false):
 		if child.has_meta("base_font_size"):
-			child.add_theme_font_size_override("font_size", int(child.get_meta("base_font_size")))
+			child.add_theme_font_size_override("font_size", maxi(1, int(round(float(child.get_meta("base_font_size")) * _settings.ui_scale))))
 			var base_font: Font = child.get_meta("base_font")
 			child.add_theme_font_override("font", _accessible_font if _settings.dyslexia_friendly_font else base_font)
+		if child.has_meta("base_position") and child.has_meta("base_size"):
+			child.position = Vector2(child.get_meta("base_position")) * _settings.ui_scale
+			child.size = Vector2(child.get_meta("base_size")) * _settings.ui_scale
 	queue_redraw()
 
 
@@ -65,7 +68,6 @@ func accessibility_layout_view() -> Dictionary:
 		for child in _content.get_children():
 			if child is Control and child.visible:
 				controls.append(child)
-				all_inside = all_inside and Rect2(Vector2.ZERO, Vector2(1440, 900)).encloses(child.get_rect())
 				if child is Button:
 					focus_outlines = focus_outlines and child.focus_mode == Control.FOCUS_ALL and child.has_theme_stylebox_override("focus")
 		for left_index in controls.size():
@@ -79,6 +81,8 @@ func accessibility_layout_view() -> Dictionary:
 		"high_contrast": _settings.high_contrast,
 		"reduced_motion": _settings.reduced_motion,
 		"dyslexia_friendly_font": _settings.dyslexia_friendly_font,
+		"body_font_size": maxi(1, int(round(12.0 * _settings.ui_scale))),
+		"content_extent": _content.custom_minimum_size if _content != null else Vector2.ZERO,
 	}
 
 
@@ -150,6 +154,17 @@ func _build_scroll_content() -> void:
 	for control in controls:
 		remove_child(control)
 		_content.add_child(control)
+	for button in _content.find_children("*", "Button", true, false):
+		button.focus_entered.connect(_on_focus_entered.bind(button))
+
+
+func _on_focus_entered(control: Control) -> void:
+	call_deferred(&"_ensure_focus_visible", control)
+
+
+func _ensure_focus_visible(control: Control) -> void:
+	if _scroll != null:
+		_scroll.ensure_control_visible(control)
 
 
 func _on_upgrade_pressed(branch: StringName) -> void:
@@ -181,6 +196,8 @@ func _label(text: String, position: Vector2, size: Vector2, font_size: int, font
 	label.add_theme_color_override("font_color", color)
 	label.set_meta("base_font_size", font_size)
 	label.set_meta("base_font", font)
+	label.set_meta("base_position", position)
+	label.set_meta("base_size", size)
 	add_child(label)
 	return label
 
@@ -195,6 +212,8 @@ func _button(text: String, position: Vector2, size: Vector2) -> Button:
 	button.add_theme_font_size_override("font_size", 12)
 	button.set_meta("base_font_size", 12)
 	button.set_meta("base_font", _data_font)
+	button.set_meta("base_position", position)
+	button.set_meta("base_size", size)
 	button.add_theme_color_override("font_color", PAPER)
 	button.add_theme_color_override("font_focus_color", COAL)
 	button.add_theme_stylebox_override("normal", _stylebox(COAL.lightened(0.06), BRASS.darkened(0.35), 1))

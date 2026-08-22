@@ -43,7 +43,8 @@ static func bone_and_pick(state: NegotiationStateScript) -> NegotiationResolver:
 				{"id": &"worker_safety_committee"},
 			],
 			[6, 10, 14],
-			[&"fume_testimony"]
+			[&"fume_testimony"],
+			true
 		),
 		BargainingIssueScript.new(
 			&"schedule",
@@ -89,6 +90,7 @@ func ratify(package: Dictionary) -> Dictionary:
 	var yes_votes: Array[StringName] = []
 	var no_votes: Array[StringName] = []
 	var explanations: Dictionary[StringName, String] = {}
+	var eligibility_blockers := _earned_evidence_blockers(package)
 	for worker_id in _state.worker_ids():
 		var priorities := _state.priorities_for(worker_id)
 		var trust := _state.worker_trust(worker_id)
@@ -101,11 +103,37 @@ func ratify(package: Dictionary) -> Dictionary:
 			no_votes.append(worker_id)
 		explanations[worker_id] = _qualitative_explanation(priorities, package, trust, votes_yes)
 	return {
-		"ratified": yes_votes.size() > no_votes.size(),
+		"ratified": eligibility_blockers.is_empty() and yes_votes.size() > no_votes.size(),
 		"yes_votes": yes_votes,
 		"no_votes": no_votes,
 		"explanations": explanations,
+		"eligibility_blockers": eligibility_blockers,
 	}
+
+
+func _earned_evidence_blockers(package: Dictionary) -> Array[StringName]:
+	var blockers: Array[StringName] = []
+	for raw_issue_id in package:
+		if typeof(raw_issue_id) != TYPE_STRING and typeof(raw_issue_id) != TYPE_STRING_NAME:
+			continue
+		var issue_id := StringName(raw_issue_id)
+		var issue: BargainingIssueScript = _issues.get(issue_id)
+		if issue == null or not issue.requires_earned_evidence() or _package_rank(package, issue_id) <= 0:
+			continue
+		var relevant_support := issue.relevant_support_ids()
+		if relevant_support.is_empty():
+			continue
+		var has_earned_evidence := false
+		for support_id in relevant_support:
+			if _state.evidence_strength(support_id) > 0:
+				has_earned_evidence = true
+				break
+		if not has_earned_evidence:
+			blockers.append(issue_id)
+	blockers.sort_custom(func(left: StringName, right: StringName) -> bool:
+		return String(left) < String(right)
+	)
+	return blockers
 
 
 func _base_leverage() -> int:

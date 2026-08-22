@@ -11,6 +11,7 @@ static func run(t: TestCase) -> void:
 	_locked_future_actions_remain_forecastable(t)
 	_execution_applies_only_the_rank_resource_cost(t)
 	_public_execution_is_transition_bound_and_idempotent(t)
+	_zero_evidence_cannot_cross_the_ratification_boundary(t)
 	_work_to_rule_preflights_every_negative_cost(t)
 	_resources_clamp_to_their_supported_bounds(t)
 	_service_copies_worker_and_grievance_inputs(t)
@@ -131,6 +132,63 @@ static func _ratify_safety(state: NegotiationState) -> Dictionary:
 		&"schedule": resolver.press(&"schedule", &""),
 		&"tool_maintenance": resolver.press(&"tool_maintenance", &"tool_ledger"),
 	})
+
+
+static func _zero_evidence_cannot_cross_the_ratification_boundary(t: TestCase) -> void:
+	var workers: Array = []
+	for worker_id in [&"nib", &"brakka", &"clatter"]:
+		var worker := WorkerState.new(worker_id)
+		worker.trust = 60
+		worker.action_willingness = 90
+		worker.bargaining_priorities = {&"safety": 3}
+		workers.append(worker)
+	var reported := GrievanceStateScript.new(&"collapse_occurrence_1", &"cave_in_prevention", [&"nib"])
+	var service: Variant = OrganizingServiceScript.new(
+		workers,
+		[reported],
+		UnionResourcesScript.new(39, 15, 0, 1)
+	)
+	var composer: Variant = load("res://src/negotiation/bone_and_pick_negotiation_composer.gd").new()
+	var before: NegotiationState = composer.compose(
+		service.worker_views(), service.grievance_views(), service.resources_snapshot()
+	)
+	t.equal(before.evidence_strength(&"fume_testimony"), 0, "reported grievances do not manufacture evidence")
+	t.check(not _ratify_safety(before).ratified, "zero evidence rejects before the leverage threshold")
+	var before_offer := NegotiationResolver.bone_and_pick(before).press(&"safety", &"fume_testimony")
+
+	var result: Dictionary = service.execute(ActionProposalScript.new(&"informal", reported.id, 50))
+	t.check(result.executed, "the exact public informal action executes")
+	var after: NegotiationState = composer.compose(
+		service.worker_views(), service.grievance_views(), service.resources_snapshot()
+	)
+	t.equal(after.solidarity, 41, "informal action crosses the solidarity leverage threshold")
+	t.equal(after.evidence_strength(&"fume_testimony"), 0, "informal action remains evidence-free")
+	var blocked_vote := _ratify_safety(after)
+	t.check(not blocked_vote.ratified, "earned evidence is required at the production ratification boundary")
+	t.equal(blocked_vote.eligibility_blockers, [&"safety"], "the production boundary names the unsupported safety issue")
+
+	var authoritative_grievances := GrievanceService.new()
+	var documented_id := authoritative_grievances.report(IncidentRecord.new(
+		&"collapse_occurrence_2", &"cave_in_prevention", [&"nib"], 12
+	))
+	authoritative_grievances.add_evidence(documented_id, EvidenceRecord.new(&"nib_testimony", 2, 120))
+	var documented_service: Variant = OrganizingServiceScript.new(
+		workers,
+		[],
+		UnionResourcesScript.new(39, 15, 0, 1),
+		authoritative_grievances
+	)
+	var earned: NegotiationState = composer.compose(
+		documented_service.worker_views(),
+		documented_service.grievance_views(),
+		documented_service.resources_snapshot()
+	)
+	t.equal(earned.evidence_strength(&"fume_testimony"), 2, "authored documented evidence reaches the composer")
+	var earned_offer := NegotiationResolver.bone_and_pick(earned).press(&"safety", &"fume_testimony")
+	t.check(earned_offer.concession_rank > before_offer.concession_rank, "production-documented evidence improves the prepared deterministic offer")
+	var earned_vote := _ratify_safety(earned)
+	t.equal(earned_vote.eligibility_blockers, [], "production-documented evidence clears the safety eligibility boundary")
+	t.check(earned_vote.ratified, "documented evidence unlocks and ratifies the prepared safety package")
 
 
 static func _work_to_rule_preflights_every_negative_cost(t: TestCase) -> void:

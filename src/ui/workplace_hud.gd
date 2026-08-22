@@ -26,6 +26,7 @@ var _scroll_regions: Array[ScrollContainer] = []
 var _scaled_contents: Array[Control] = []
 var _left_stack: VBoxContainer
 var _right_stack: VBoxContainer
+var _action_grid: GridContainer
 var _document_button: Button
 var _action_buttons: Array[Button] = []
 var _negotiate_button: Button
@@ -78,13 +79,24 @@ func set_accessibility(settings: AccessibilitySettings) -> void:
 	_settings = settings.normalized_copy()
 	scale = Vector2.ONE
 	for content in _scaled_contents:
-		content.scale = Vector2.ONE * _settings.ui_scale
-		content.custom_minimum_size = content.get_meta("base_size") * _settings.ui_scale
+		content.scale = Vector2.ONE
+		content.custom_minimum_size = Vector2(content.get_meta("base_size")) * _settings.ui_scale
 	for child in find_children("*", "Control", true, false):
 		if child.has_meta("base_font_size"):
-			child.add_theme_font_size_override("font_size", int(child.get_meta("base_font_size")))
+			child.add_theme_font_size_override("font_size", maxi(1, int(round(float(child.get_meta("base_font_size")) * _settings.ui_scale))))
 			var base_font: Font = child.get_meta("base_font")
 			child.add_theme_font_override("font", _accessible_font if _settings.dyslexia_friendly_font else base_font)
+		if child.has_meta("flow_minimum_size"):
+			child.custom_minimum_size = Vector2(child.get_meta("flow_minimum_size")) * _settings.ui_scale
+		elif child.has_meta("base_position") and child.has_meta("base_size"):
+			child.position = Vector2(child.get_meta("base_position")) * _settings.ui_scale
+			child.size = Vector2(child.get_meta("base_size")) * _settings.ui_scale
+	_scale_container(_left_stack, Vector2(16, 14), 278.0, 4)
+	_scale_container(_right_stack, Vector2(20, 16), 258.0, 7)
+	if _action_grid != null:
+		_action_grid.custom_minimum_size = Vector2(258, 73) * _settings.ui_scale
+		_action_grid.add_theme_constant_override("h_separation", maxi(1, int(round(6.0 * _settings.ui_scale))))
+		_action_grid.add_theme_constant_override("v_separation", maxi(1, int(round(5.0 * _settings.ui_scale))))
 	call_deferred(&"_settle_panel_layout")
 	queue_redraw()
 
@@ -107,23 +119,39 @@ func context_text() -> String:
 	return "%s\n%s" % [_labels.case_title.text, _labels.case_body.text]
 
 
+func union_hall_button() -> Button:
+	return _hall_button
+
+
 func accessibility_layout_view() -> Dictionary:
 	var viewport_rect := Rect2(Vector2.ZERO, Vector2(1440, 900))
 	var inside := true
 	for region in _scroll_regions:
 		inside = inside and viewport_rect.encloses(region.get_global_rect())
-	var visible_rects := _visible_layout_rects()
+	var control_rects := _layout_control_rects()
+	var visible_rects: Array[Dictionary] = []
+	for item in control_rects:
+		if item.visible_rect.has_area():
+			visible_rects.append(item)
 	var non_intersecting := true
-	for left_index in visible_rects.size():
-		for right_index in range(left_index + 1, visible_rects.size()):
-			if visible_rects[left_index].region == visible_rects[right_index].region:
-				non_intersecting = non_intersecting and not visible_rects[left_index].rect.intersects(visible_rects[right_index].rect)
+	for left_index in control_rects.size():
+		for right_index in range(left_index + 1, control_rects.size()):
+			if control_rects[left_index].region == control_rects[right_index].region:
+				non_intersecting = non_intersecting and not control_rects[left_index].rect.intersects(control_rects[right_index].rect)
 	for item in visible_rects:
-		inside = inside and viewport_rect.encloses(item.rect)
+		inside = inside and viewport_rect.encloses(item.visible_rect)
 	var outlined := true
 	for button in find_children("*", "Button", true, false):
 		outlined = outlined and button.focus_mode == Control.FOCUS_ALL and button.has_theme_stylebox_override("focus")
-	return {"all_inside_viewport": inside, "no_intersections": non_intersecting, "focus_outlines": outlined, "visible_rects": visible_rects}
+	return {
+		"all_inside_viewport": inside,
+		"no_intersections": non_intersecting,
+		"focus_outlines": outlined,
+		"visible_rects": visible_rects,
+		"control_rects": control_rects,
+		"right_region_rect": _scroll_regions[2].get_global_rect(),
+		"right_content_extent": _scaled_contents[2].size.max(_scaled_contents[2].custom_minimum_size),
+	}
 
 
 func _draw() -> void:
@@ -179,6 +207,8 @@ func _build_interface() -> void:
 		button.add_theme_font_size_override("font_size", 13)
 		button.set_meta("base_font_size", 13)
 		button.set_meta("base_font", _body_font)
+		button.set_meta("base_position", button.position)
+		button.set_meta("base_size", button.size)
 		button.add_theme_color_override("font_color", COAL)
 		button.add_theme_color_override("font_pressed_color", PAPER)
 		button.add_theme_color_override("font_focus_color", COAL)
@@ -302,6 +332,7 @@ func _build_scroll_regions() -> void:
 
 func _create_scroll_region(rect: Rect2, base_size: Vector2, controls: Array) -> void:
 	var scroll := ScrollContainer.new()
+	scroll.name = "ScrollRegion%02d" % _scroll_regions.size()
 	scroll.position = rect.position
 	scroll.size = rect.size
 	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -348,18 +379,20 @@ func _build_panel_stacks() -> void:
 	_move_to_flow(_labels.grievance, _right_stack, 44, "CaseEvidence")
 	_move_to_flow(_labels.forecast, _right_stack, 72, "ActionForecast")
 	_move_to_flow(_document_button, _right_stack, 34, "DocumentAction")
-	var action_grid := GridContainer.new()
-	action_grid.name = "ActionChoices"
-	action_grid.columns = 2
-	action_grid.custom_minimum_size = Vector2(258, 73)
-	action_grid.add_theme_constant_override("h_separation", 6)
-	action_grid.add_theme_constant_override("v_separation", 5)
-	_right_stack.add_child(action_grid)
+	_action_grid = GridContainer.new()
+	_action_grid.name = "ActionChoices"
+	_action_grid.columns = 2
+	_action_grid.custom_minimum_size = Vector2(258, 73)
+	_action_grid.add_theme_constant_override("h_separation", 6)
+	_action_grid.add_theme_constant_override("v_separation", 5)
+	_right_stack.add_child(_action_grid)
 	for index in _action_buttons.size():
-		_move_to_flow(_action_buttons[index], action_grid, 34, "OrganizingAction%02d" % index, 126)
+		_move_to_flow(_action_buttons[index], _action_grid, 34, "OrganizingAction%02d" % index, 126)
 	_move_to_flow(_negotiate_button, _right_stack, 34, "NegotiateAction")
 	_move_to_flow(_labels.action, _right_stack, 60, "ActionResult")
 	_move_to_flow(_hall_button, _right_stack, 42, "UnionHallAction")
+	for button in find_children("*", "Button", true, false):
+		button.focus_entered.connect(_on_focus_entered.bind(button))
 
 
 func _move_to_flow(control: Control, container: Container, minimum_height: float, control_name: String, minimum_width: float = 0.0) -> void:
@@ -369,6 +402,8 @@ func _move_to_flow(control: Control, container: Container, minimum_height: float
 	control.name = control_name
 	control.position = Vector2.ZERO
 	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var flow_minimum := Vector2(minimum_width, minimum_height)
+	control.set_meta("flow_minimum_size", flow_minimum)
 	control.custom_minimum_size.y = minimum_height
 	if minimum_width > 0.0:
 		control.custom_minimum_size.x = minimum_width
@@ -389,19 +424,20 @@ func _settle_panel_layout() -> void:
 
 func _reserve_label_height(label: Label, baseline: float) -> void:
 	var line_height := maxi(1, label.get_line_height())
-	var narrative_height := float(maxi(1, label.get_line_count()) * line_height + 8)
-	label.custom_minimum_size.y = maxf(baseline, narrative_height)
+	var narrative_height := float(maxi(1, label.get_line_count()) * line_height) + 8.0 * _settings.ui_scale
+	label.custom_minimum_size.y = maxf(baseline * _settings.ui_scale, narrative_height)
 
 
 func _refresh_flow_extent(content_index: int, stack: VBoxContainer) -> void:
 	var content := _scaled_contents[content_index]
 	var base_size: Vector2 = content.get_meta("base_size")
-	base_size.y = maxf(758.0, stack.position.y + stack.get_combined_minimum_size().y + 16.0)
-	content.set_meta("base_size", base_size)
-	content.custom_minimum_size = base_size * _settings.ui_scale
+	content.custom_minimum_size = Vector2(
+		base_size.x * _settings.ui_scale,
+		maxf(base_size.y * _settings.ui_scale, stack.position.y + stack.get_combined_minimum_size().y + 16.0 * _settings.ui_scale)
+	)
 
 
-func _visible_layout_rects() -> Array[Dictionary]:
+func _layout_control_rects() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for region_index in _scroll_regions.size():
 		var region_rect := _scroll_regions[region_index].get_global_rect()
@@ -411,10 +447,34 @@ func _visible_layout_rects() -> Array[Dictionary]:
 			if not control.is_visible_in_tree():
 				continue
 			var transformed := _transformed_control_rect(control)
-			var clipped := transformed.intersection(region_rect)
-			if clipped.has_area():
-				result.append({"name": String(control.name), "region": region_index, "rect": clipped})
+			result.append({
+				"name": String(control.name),
+				"region": region_index,
+				"rect": transformed,
+				"visible_rect": transformed.intersection(region_rect),
+			})
 	return result
+
+
+func _scale_container(container: VBoxContainer, base_position: Vector2, base_width: float, base_separation: int) -> void:
+	if container == null:
+		return
+	container.position = base_position * _settings.ui_scale
+	container.custom_minimum_size.x = base_width * _settings.ui_scale
+	container.add_theme_constant_override("separation", maxi(1, int(round(float(base_separation) * _settings.ui_scale))))
+
+
+func _on_focus_entered(control: Control) -> void:
+	call_deferred(&"_ensure_focus_visible", control)
+
+
+func _ensure_focus_visible(control: Control) -> void:
+	var current: Node = control.get_parent()
+	while current != null:
+		if current is ScrollContainer:
+			(current as ScrollContainer).ensure_control_visible(control)
+			return
+		current = current.get_parent()
 
 
 func _transformed_control_rect(control: Control) -> Rect2:
@@ -452,6 +512,8 @@ func _label(text: String, position: Vector2, size: Vector2, font_size: int, font
 	label.add_theme_color_override("font_color", color)
 	label.set_meta("base_font_size", font_size)
 	label.set_meta("base_font", font)
+	label.set_meta("base_position", position)
+	label.set_meta("base_size", size)
 	add_child(label)
 	return label
 
@@ -466,6 +528,8 @@ func _button(text: String, position: Vector2, size: Vector2) -> Button:
 	button.add_theme_font_size_override("font_size", 12)
 	button.set_meta("base_font_size", 12)
 	button.set_meta("base_font", _data_font)
+	button.set_meta("base_position", position)
+	button.set_meta("base_size", size)
 	button.add_theme_color_override("font_color", PAPER)
 	button.add_theme_color_override("font_focus_color", COAL)
 	button.add_theme_stylebox_override("normal", _stylebox(COAL.lightened(0.06), BRASS.darkened(0.35), 1))

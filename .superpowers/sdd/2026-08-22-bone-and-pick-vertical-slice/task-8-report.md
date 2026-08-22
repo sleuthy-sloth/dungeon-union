@@ -295,3 +295,67 @@ All three Godot commands print the known macOS sandbox CA-certificate lookup dia
 - No changes were made to approved occurrence ID construction, active/history filtering, RNG durability, or campaign restoration beyond passing the existing full suite.
 
 External limitations are unchanged: three-player comprehension, rendered final-art/audio 30-agent performance on the target Mac, arm64 export/launch without the missing Godot 4.7.2 template, and reproducible screenshot capture remain external gates.
+
+## External Fix Round 3 — 2026-08-22
+
+Round 3 addressed only the two residual re-review findings. Public organizing idempotence, fixture issue exactness, focused Tab/Shift-Tab behavior, recurrence identity, and durable restoration were left unchanged and remained green.
+
+### Residual fixes and corrected claims
+
+1. **Earned evidence is enforced at the production ratification boundary.** The authored Bone & Pick safety issue now declares that a non-zero safety concession requires earned relevant evidence. `NegotiationResolver.ratify()` evaluates that eligibility before it can return `ratified = true` and publishes deterministic `eligibility_blockers` separately from named-worker preference votes. This is not a controller guard. The direct service/composer/resolver counterexample uses three authoritative worker snapshots with trust 60, willingness 90, and safety priority 3; a reported zero-evidence grievance; and resources 39 solidarity / 15 treasury / 0 public support. One valid public informal action raises solidarity to 41 but leaves evidence at zero, and the resulting package remains rejected with `safety` named as the blocker. A second path reports and documents an occurrence through public `GrievanceService` APIs, proves the composer receives evidence strength 2, improves the deterministic offer, clears the blocker, and ratifies the prepared package without fabricated controller or fixture state.
+2. **UI scale changes real settled metrics, and focus reveals clipped controls.** The HUD and Union Hall no longer scale a `ScrollContainer` direct child transform. They keep content transforms at identity and scale actual font overrides, control minimum sizes, stack widths/positions, grid and stack separations, absolute hall geometry, and content extents. The HUD's flow-based narrative height is recomputed from its scaled line metrics. Every focusable button requests `ensure_control_visible()` from its owning scroll region after focus settles, including the Union Hall route at the bottom of a long case file.
+3. **Round 2 layout proof correction.** Round 2 overstated the effectiveness of its scale and geometry acceptance: Godot can reset a scroll container's direct-child transform; the live controller could replace the injected long view during awaited frames; and clipping each reported leaf rectangle hid unreachable controls. Round 3 uses a standalone, fixed 1440×900 HUD for the long-content fixture, waits three layout frames at each supported scale, and publishes both the full transformed control rectangle and its visible intersection. It verifies monotonic typography, narrative height, and scroll-extent changes at 0.75× / 1× / 1.5× / 2×, full same-region non-intersection (including the long worker header), viewport-bounded visible intersections, usable vertical scroll extent, focus borders, retained keyboard focus, and focus-driven visibility of the initially off-clip Union Hall control. The Union Hall independently reports scaled typography and content extent while receiving high contrast, reduced motion, and dyslexia-font settings.
+
+### Round 3 strict TDD evidence
+
+The exact zero-evidence threshold test was added before the resolver change. Against Round 2 commit `87d4893a4231690b95ae8a99836b2459b37af2ec`, the registered suite exited `1` with:
+
+```text
+earned evidence is required at the production ratification boundary
+```
+
+After the boundary became green, the standalone settled-layout assertions were added before changing either UI. The behavioral RED run exited `1`; the old clipped helper lacked a full visible rectangle, and the old reset transform did not publish or create the required real metrics:
+
+```text
+Invalid access to property or key 'visible_rect' on a base object of type 'Dictionary'.
+0.75 long case file creates usable vertical scroll extent
+0.75 publishes every full control rectangle, including clipped leaves
+```
+
+The test was then made tolerant of the missing key so failures stayed behavioral rather than aborting the suite. Production font/minimum-size/separation scaling, full-rectangle inspection, and focus scrolling made the focused Round 3 runner and the complete registered suite exit `0`.
+
+### Round 3 files
+
+- Negotiation eligibility: `src/negotiation/bargaining_issue.gd`, `src/negotiation/negotiation_resolver.gd`.
+- Real accessible layout and focus scrolling: `src/ui/workplace_hud.gd`, `src/ui/union_hall_view.gd`.
+- Direct threshold regression: `tests/organizing/test_escalation.gd`.
+- Settled standalone long-content acceptance: `tests/acceptance/test_scene_accessibility.gd`.
+
+### Round 3 verification
+
+| Check | Result |
+|---|---|
+| Focused organizing + scene accessibility runner | PASS, exit 0 |
+| Full registered suite | PASS, exit 0 |
+| 30-agent stress | PASS, exit 0; 240 ticks, 5.625 ms, backlog 0 |
+| Main-scene startup `--quit-after 2` | PASS, exit 0; no project parse/resource/runtime errors |
+| `git diff --check` | PASS, no whitespace errors |
+
+```sh
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://work/round3_test_runner.gd --log-file /tmp/dungeon-union-external-fix3-focused.log
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://tests/test_runner.gd --log-file /tmp/dungeon-union-external-fix3-full.log
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://tests/performance/workplace_stress.gd --log-file /tmp/dungeon-union-external-fix3-stress.log
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --quit-after 2 --log-file /tmp/dungeon-union-external-fix3-startup.log
+git diff --check
+```
+
+The focused runner was a temporary reproducible verification artifact under `work/` and was removed after the successful run; it is not part of the commit. All Godot invocations still print the known macOS sandbox CA-certificate lookup diagnostic and exit `0` after the fix. No assertion, parse, resource, or project runtime error appears in the project logs.
+
+### Round 3 self-review and external gates
+
+- The resolver retains deterministic employer offers and named-worker votes; evidence eligibility is an authored issue rule applied only at ratification. Schedule remains evidence-independent, and maintenance evidence remains optional leverage as authored. No controller-only or fixture-only bypass exists.
+- Presentation still uses the same paper docket, cut-corner case file, Safety Teal focus treatment, and color-independent hazard language. Scaling changes layout mechanics rather than replacing the visual direction with generic panels.
+- Layout inspection no longer clips away evidence of unreachable leaves. Scroll regions remain fixed within the 1440×900 logical viewport, while enlarged content uses explicit extents and focus-aware scrolling.
+- `WorkplaceController` remains the sole continuous fixed-tick bridge, and `AppRoot` has no simulation loop. No Task 3–7 public API conflict was encountered.
+
+External limitations remain unchanged: the three-player comprehension gate, rendered final-art/audio 30-agent 60 FPS gate on the target Mac, arm64 export/launch pending the missing Godot 4.7.2 export template, and reproducible screenshot capture are still external and are not claimed by these headless checks.
