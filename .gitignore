@@ -13,3 +13,6 @@ export_credentials.cfg
 
 # Local brainstorming artifacts
 .superpowers/
+
+# Isolated implementation worktrees
+.worktrees/
