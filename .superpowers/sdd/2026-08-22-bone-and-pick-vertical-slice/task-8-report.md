@@ -359,3 +359,64 @@ The focused runner was a temporary reproducible verification artifact under `wor
 - `WorkplaceController` remains the sole continuous fixed-tick bridge, and `AppRoot` has no simulation loop. No Task 3–7 public API conflict was encountered.
 
 External limitations remain unchanged: the three-player comprehension gate, rendered final-art/audio 30-agent 60 FPS gate on the target Mac, arm64 export/launch pending the missing Godot 4.7.2 export template, and reproducible screenshot capture are still external and are not claimed by these headless checks.
+
+## External Fix Round 4 — 2026-08-22
+
+Round 4 addressed only the remaining horizontal scroll-extent residual. The earned-evidence boundary and every frozen organizing, occurrence, input, and restoration behavior were unchanged.
+
+### Residual fix and corrected claim
+
+`WorkplaceHUD._refresh_flow_extent()` no longer derives left/right content width from `base_size.x * ui_scale`. After container settlement it measures the stack's offset plus the greater of its actual size and combined minimum size, then adds a scaled 16-pixel edge margin. The content remains at an identity transform, keeps the approved real font/minimum-size/separation scaling, and is never narrower than its scroll viewport. Wide dyslexia-font roster rows, the complete `FAT` column, case-file headings, and focus-border gutters are therefore part of the reachable scroll range.
+
+Round 3 correctly proved full leaf non-intersection and real metric scaling, but overstated horizontal reachability: a leaf could be measured outside its direct content node while the helper still reported its global rectangle. Round 4's standalone fixture inspects the actual scroll child and does not use the presentation helper's clipped rectangles for this contract. At 0.75×, 1×, 1.5×, and 2× it asserts every visible label/button rectangle lies within its direct content extent. It then moves both left and right scroll containers to their settled minimum and maximum horizontal positions, waits for viewport layout, and verifies the full left and right edges of the worker header/first roster row and case heading/title against the real scrollbar-reduced viewport. The edge check includes a three-pixel focus allowance, and the representative roster button retains its authored focus style.
+
+### Round 4 strict TDD evidence
+
+The standalone assertions were added first and run against Round 3 commit `c4080d7f0b9722e49ebcebb76e87c9638535e785`. The behavioral RED suite exited `1`. Representative failures included:
+
+```text
+0.75 full DocketHeading leaf lies inside its horizontal scroll content extent
+0.75 full WorkerColumns leaf lies inside its horizontal scroll content extent
+0.75 full WorkerRow00 leaf lies inside its horizontal scroll content extent
+0.75 full CaseHeading leaf lies inside its horizontal scroll content extent
+0.75 full CaseTitle leaf lies inside its horizontal scroll content extent
+1.00 maximum scroll reveals full right edge for WorkerColumns
+1.00 maximum scroll reveals full right edge for WorkerRow00
+1.50 maximum scroll reveals full right edge for WorkerColumns
+2.00 maximum scroll reveals full right edge for WorkerRow00
+```
+
+The minimal production change replaced only the horizontal width expression with settled stack bounds plus margin. The focused standalone runner and full registered suite then exited `0`.
+
+### Round 4 files
+
+- Settled horizontal extent: `src/ui/workplace_hud.gd`.
+- Real scroll-content and viewport regression: `tests/acceptance/test_scene_accessibility.gd`.
+
+### Round 4 verification
+
+| Check | Result |
+|---|---|
+| Focused scene-accessibility runner | PASS, exit 0 |
+| Full registered suite | PASS, exit 0 |
+| 30-agent stress | PASS, exit 0; 240 ticks, 6.983 ms, backlog 0 |
+| Main-scene startup `--quit-after 2` | PASS, exit 0; no project parse/resource/runtime errors |
+| `git diff --check` | PASS, no whitespace errors |
+
+```sh
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://work/round4_test_runner.gd --log-file /tmp/dungeon-union-external-fix4-focused.log
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://tests/test_runner.gd --log-file /tmp/dungeon-union-external-fix4-full.log
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://tests/performance/workplace_stress.gd --log-file /tmp/dungeon-union-external-fix4-stress.log
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --quit-after 2 --log-file /tmp/dungeon-union-external-fix4-startup.log
+git diff --check
+```
+
+The focused runner was temporary under `work/` and was removed after verification. All Godot commands exit `0` and print only the known macOS sandbox CA-certificate lookup diagnostic outside project code.
+
+### Round 4 self-review and external gates
+
+- The width calculation uses the actual settled container boundary rather than duplicating the font/text measurement logic, so future wider authored worker names remain reachable.
+- Scaled left offset and right margin preserve the paper-docket/case-file breathing room and keep complete Safety Teal focus borders away from the content boundary.
+- No negotiation, organizing, fixture, occurrence, save/restore, campaign, or fixed-tick code changed. `AppRoot` remains free of a simulation loop.
+
+External limitations are unchanged: three-player comprehension, rendered final-art/audio 30-agent 60 FPS on the target Mac, arm64 export/launch pending the missing Godot 4.7.2 export template, and reproducible screenshot capture remain external gates.

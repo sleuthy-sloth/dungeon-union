@@ -431,8 +431,10 @@ func _reserve_label_height(label: Label, baseline: float) -> void:
 func _refresh_flow_extent(content_index: int, stack: VBoxContainer) -> void:
 	var content := _scaled_contents[content_index]
 	var base_size: Vector2 = content.get_meta("base_size")
+	var stack_extent := stack.size.max(stack.get_combined_minimum_size())
+	var edge_margin := 16.0 * _settings.ui_scale
 	content.custom_minimum_size = Vector2(
-		base_size.x * _settings.ui_scale,
+		maxf(_scroll_regions[content_index].size.x, stack.position.x + stack_extent.x + edge_margin),
 		maxf(base_size.y * _settings.ui_scale, stack.position.y + stack.get_combined_minimum_size().y + 16.0 * _settings.ui_scale)
 	)
 

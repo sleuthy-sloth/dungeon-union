@@ -129,6 +129,7 @@ static func run(t: TestCase) -> void:
 		for item in visible_rects:
 			var visible_rect: Rect2 = item.get("visible_rect", Rect2())
 			t.check(visible_rect.has_area() and Rect2(Vector2.ZERO, Vector2(1440, 900)).encloses(visible_rect), "%.2f clipped %s bounds stay within the viewport" % [supported_scale, item.name])
+		await _assert_horizontal_scroll_reaches_full_content(t, tree, settled_hud, supported_scale)
 		var hall_button: Button = settled_hud.find_child("UnionHallAction", true, false)
 		var right_scroll := _ancestor_scroll(hall_button)
 		t.check(hall_button != null and right_scroll != null, "%.2f union-hall route belongs to the contextual scroll region" % supported_scale)
@@ -172,3 +173,87 @@ static func _global_rect(control: Control) -> Rect2:
 		minimum = minimum.min(point)
 		maximum = maximum.max(point)
 	return Rect2(minimum, maximum - minimum)
+
+
+static func _assert_horizontal_scroll_reaches_full_content(
+	t: TestCase,
+	tree: SceneTree,
+	hud: WorkplaceHUD,
+	supported_scale: float
+) -> void:
+	var representative_groups := [
+		[
+			hud.find_child("WorkerColumns", true, false),
+			hud.find_child("WorkerRow00", true, false),
+		],
+		[
+			hud.find_child("CaseHeading", true, false),
+			hud.find_child("CaseTitle", true, false),
+		],
+	]
+	for representatives in representative_groups:
+		var focus_control: Control = representatives[1]
+		var scroll := _ancestor_scroll(focus_control)
+		var content := _scroll_content(scroll)
+		t.check(scroll != null and content != null, "%.2f representative controls own real scroll content" % supported_scale)
+		if scroll == null or content == null:
+			continue
+		var content_extent := Rect2(Vector2.ZERO, content.size.max(content.custom_minimum_size))
+		for leaf in content.find_children("*", "Control", true, false):
+			if (leaf is Label or leaf is Button) and leaf.is_visible_in_tree():
+				var leaf_rect := _rect_relative_to(leaf, content)
+				t.check(content_extent.grow(0.5).encloses(leaf_rect), "%.2f full %s leaf lies inside its horizontal scroll content extent" % [supported_scale, leaf.name])
+		if focus_control is Button:
+			focus_control.grab_focus()
+		await tree.process_frame
+		scroll.scroll_horizontal = 0
+		await tree.process_frame
+		await tree.process_frame
+		var viewport_rect := _scroll_viewport_rect(scroll)
+		for control in representatives:
+			var left_rect := _global_rect(control).grow(3.0)
+			t.check(left_rect.position.x >= viewport_rect.position.x - 0.5 and left_rect.position.x <= viewport_rect.end.x, "%.2f minimum scroll reveals full left edge for %s" % [supported_scale, control.name])
+		scroll.scroll_horizontal = 1000000
+		await tree.process_frame
+		await tree.process_frame
+		viewport_rect = _scroll_viewport_rect(scroll)
+		for control in representatives:
+			var right_rect := _global_rect(control).grow(3.0)
+			t.check(right_rect.end.x <= viewport_rect.end.x + 0.5 and right_rect.end.x >= viewport_rect.position.x, "%.2f maximum scroll reveals full right edge for %s" % [supported_scale, control.name])
+		if focus_control is Button:
+			t.check(focus_control.has_theme_stylebox_override("focus"), "%.2f representative roster focus border remains authored" % supported_scale)
+
+
+static func _scroll_content(scroll: ScrollContainer) -> Control:
+	if scroll == null:
+		return null
+	for child in scroll.get_children():
+		if child is Control and child != scroll.get_h_scroll_bar() and child != scroll.get_v_scroll_bar():
+			return child
+	return null
+
+
+static func _rect_relative_to(control: Control, ancestor: Control) -> Rect2:
+	var inverse := ancestor.get_global_transform_with_canvas().affine_inverse()
+	var transform := control.get_global_transform_with_canvas()
+	var minimum := inverse * (transform * Vector2.ZERO)
+	var maximum := minimum
+	for point in [
+		inverse * (transform * Vector2(control.size.x, 0)),
+		inverse * (transform * control.size),
+		inverse * (transform * Vector2(0, control.size.y)),
+	]:
+		minimum = minimum.min(point)
+		maximum = maximum.max(point)
+	return Rect2(minimum, maximum - minimum)
+
+
+static func _scroll_viewport_rect(scroll: ScrollContainer) -> Rect2:
+	var result := scroll.get_global_rect()
+	var vertical_bar := scroll.get_v_scroll_bar()
+	if vertical_bar.visible:
+		result.size.x -= vertical_bar.size.x
+	var horizontal_bar := scroll.get_h_scroll_bar()
+	if horizontal_bar.visible:
+		result.size.y -= horizontal_bar.size.y
+	return result
