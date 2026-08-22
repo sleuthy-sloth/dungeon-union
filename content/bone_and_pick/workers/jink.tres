@@ -8,4 +8,5 @@ id = &"jink"
 display_name = "Jink Ratchet"
 species = &"kobold"
 job_id = &"tool_mender"
-traits = Array[StringName]([&"tool_mender", &"inventive"])
+traits = Array[StringName]([&"inventive"])
+event_role_tags = Array[StringName]([&"tool_mender"])

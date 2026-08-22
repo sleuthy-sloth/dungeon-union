@@ -8,4 +8,5 @@ id = &"kora"
 display_name = "Kora Tripwire"
 species = &"hobgoblin"
 job_id = &"alarm_watcher"
-traits = Array[StringName]([&"alarm_watcher", &"steady"])
+traits = Array[StringName]([&"steady"])
+event_role_tags = Array[StringName]([&"alarm_watcher"])

@@ -8,4 +8,5 @@ id = &"fizz"
 display_name = "Fizz Cartwhistle"
 species = &"goblin"
 job_id = &"hauler"
-traits = Array[StringName]([&"hauler", &"quick"])
+traits = Array[StringName]([&"quick"])
+event_role_tags = Array[StringName]([&"hauler"])

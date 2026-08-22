@@ -8,4 +8,5 @@ id = &"hush"
 display_name = "Hush Quietbrace"
 species = &"goblin"
 job_id = &"shoring_carpenter"
-traits = Array[StringName]([&"shorer", &"patient"])
+traits = Array[StringName]([&"patient"])
+event_role_tags = Array[StringName]([&"shorer"])

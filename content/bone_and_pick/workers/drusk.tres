@@ -8,4 +8,5 @@ id = &"drusk"
 display_name = "Drusk Sootnose"
 species = &"hobgoblin"
 job_id = &"lantern_tender"
-traits = Array[StringName]([&"lantern_tender", &"observant"])
+traits = Array[StringName]([&"observant"])
+event_role_tags = Array[StringName]([&"lantern_tender"])

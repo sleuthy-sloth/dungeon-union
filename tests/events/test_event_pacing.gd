@@ -2,42 +2,38 @@ extends RefCounted
 
 
 static func run(t: TestCase) -> void:
-	_major_event_gap_is_exactly_180_fixed_ticks(t)
-	_one_active_major_event_blocks_another(t)
-	_event_families_wait_two_workdays_before_repeating(t)
+	_atomic_start_routes_major_lifecycle_and_exact_cooldown(t)
+	_event_families_wait_two_workdays_before_repeating_for_minor_events(t)
 	_selection_is_deterministic_for_a_seed(t)
 	_eligibility_is_a_pure_snapshot_query(t)
 
 
-static func _major_event_gap_is_exactly_180_fixed_ticks(t: TestCase) -> void:
+static func _atomic_start_routes_major_lifecycle_and_exact_cooldown(t: TestCase) -> void:
 	var director := WorkplaceDirector.fixture(42)
-	director.record_major_event(&"fume_leak", 100)
-	t.equal(director.choose_next(200), null, "major event cooldown blocks overlap")
-	t.equal(director.choose_next(279), null, "179 fixed ticks is still inside the 45-second gap")
-	t.check(director.choose_next(280) != null, "eligible event resumes after 45 seconds")
+	var started: EventDefinition = director.choose_and_start(100)
+	t.check(started != null, "an eligible authored event starts atomically")
+	t.equal(director.choose_and_start(280), null, "an active major event blocks another start")
+	t.check(not director.complete_event(&"different_event"), "non-matching completion cannot clear the active major event")
+	t.equal(director.choose_and_start(280), null, "a mismatched completion leaves the major event active")
+	t.check(director.complete_event(started.id), "matching completion routes the major event lifecycle")
+	t.equal(director.choose_and_start(279), null, "179 fixed ticks is still inside the 45-second gap")
+	t.check(director.choose_and_start(280) != null, "eligible event resumes at the exact 180-tick boundary")
 
 
-static func _one_active_major_event_blocks_another(t: TestCase) -> void:
-	var director := WorkplaceDirector.fixture(42)
-	director.set_active_major_event(&"cave_in_risk")
-	t.equal(director.choose_next(500), null, "one active major event blocks another major event")
-	director.set_active_major_event(&"lantern_fumes")
-	director.clear_active_major_event(&"lantern_fumes")
-	t.equal(director.choose_next(500), null, "a second major event cannot replace the active major event")
-	director.clear_active_major_event(&"cave_in_risk")
-	t.check(director.choose_next(500) != null, "completing the active major event permits selection")
-
-
-static func _event_families_wait_two_workdays_before_repeating(t: TestCase) -> void:
-	var director := WorkplaceDirector.fixture(42)
+static func _event_families_wait_two_workdays_before_repeating_for_minor_events(t: TestCase) -> void:
+	var minor := EventDefinition.new()
+	minor.id = &"mutual_aid"
+	minor.family = &"spontaneous_mutual_aid"
+	minor.major = false
+	var director := WorkplaceDirector.new([minor], 42)
 	director.set_workday(1)
-	director.record_major_event(&"cave_in_risk", 0)
+	t.equal(director.choose_and_start(0), minor, "minor event starts and records its family")
 	director.set_workday(2)
 	var day_two := director.eligible_events(1000)
-	t.check(not _has_family(day_two, &"cave_in_risk"), "a family cannot repeat on the next workday")
+	t.check(not _has_family(day_two, &"spontaneous_mutual_aid"), "a minor family cannot repeat on the next workday")
 	director.set_workday(3)
 	var day_three := director.eligible_events(1000)
-	t.check(_has_family(day_three, &"cave_in_risk"), "a family becomes eligible after two workdays")
+	t.check(_has_family(day_three, &"spontaneous_mutual_aid"), "a minor family becomes eligible after two workdays")
 
 
 static func _selection_is_deterministic_for_a_seed(t: TestCase) -> void:
@@ -45,9 +41,11 @@ static func _selection_is_deterministic_for_a_seed(t: TestCase) -> void:
 	var second := WorkplaceDirector.fixture(9917)
 
 	for tick in [0, 180, 360]:
-		var first_event: EventDefinition = first.choose_next(tick)
-		var second_event: EventDefinition = second.choose_next(tick)
+		var first_event: EventDefinition = first.choose_and_start(tick)
+		var second_event: EventDefinition = second.choose_and_start(tick)
 		t.equal(first_event.id, second_event.id, "matching seeds choose the same authored event")
+		first.complete_event(first_event.id)
+		second.complete_event(second_event.id)
 
 
 static func _eligibility_is_a_pure_snapshot_query(t: TestCase) -> void:

@@ -62,7 +62,7 @@ static func validate(catalog: ContentCatalog) -> Array[String]:
         for worker_id in workplace.worker_ids:
             for worker in catalog.worker_items:
                 if worker != null and worker.id == worker_id:
-                    for worker_tag in worker.traits:
+                    for worker_tag in worker.event_role_tags:
                         worker_tags[worker_tag] = true
                     break
         for event_id in workplace.event_ids:

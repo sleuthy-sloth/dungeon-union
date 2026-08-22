@@ -8,4 +8,5 @@ id = &"brakka"
 display_name = "Brakka Beamwise"
 species = &"goblin"
 job_id = &"shoring_carpenter"
-traits = Array[StringName]([&"shorer", &"plainspoken"])
+traits = Array[StringName]([&"plainspoken"])
+event_role_tags = Array[StringName]([&"shorer"])

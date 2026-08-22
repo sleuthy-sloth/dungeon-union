@@ -8,4 +8,5 @@ id = &"ivor"
 display_name = "Ivor Glowglass"
 species = &"imp"
 job_id = &"lantern_tender"
-traits = Array[StringName]([&"lantern_tender", &"skeptical"])
+traits = Array[StringName]([&"skeptical"])
+event_role_tags = Array[StringName]([&"lantern_tender"])

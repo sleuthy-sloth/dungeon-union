@@ -8,4 +8,5 @@ id = &"lute"
 display_name = "Lute Handcart"
 species = &"bugbear"
 job_id = &"hauler"
-traits = Array[StringName]([&"hauler", &"mutual_aid_steward"])
+traits = Array[StringName]([&"generous"])
+event_role_tags = Array[StringName]([&"hauler", &"mutual_aid_steward"])

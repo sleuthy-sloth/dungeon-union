@@ -6,3 +6,4 @@ extends Resource
 @export var species: StringName
 @export var job_id: StringName
 @export var traits: Array[StringName]
+@export var event_role_tags: Array[StringName]

@@ -8,4 +8,5 @@ id = &"grib"
 display_name = "Grib Flintcap"
 species = &"goblin"
 job_id = &"miner"
-traits = Array[StringName]([&"miner", &"stubborn"])
+traits = Array[StringName]([&"stubborn"])
+event_role_tags = Array[StringName]([&"miner"])

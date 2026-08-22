@@ -15,6 +15,7 @@ var _last_major_tick := -MAJOR_EVENT_GAP_TICKS
 var _family_last_workday: Dictionary[StringName, int] = {}
 var _current_workday := 1
 var _active_major_event: StringName = &""
+var _active_event_ids: Dictionary[StringName, bool] = {}
 
 
 func _init(events: Array, seed: int, snapshot: Dictionary = {}) -> void:
@@ -48,21 +49,6 @@ func set_workday(workday: int) -> void:
 	_current_workday = maxi(1, workday)
 
 
-func set_active_major_event(event_id: StringName) -> void:
-	if _active_major_event.is_empty() or _active_major_event == event_id:
-		_active_major_event = event_id
-
-
-func clear_active_major_event(event_id: StringName) -> void:
-	if _active_major_event == event_id:
-		_active_major_event = &""
-
-
-func record_major_event(family: StringName, tick: int) -> void:
-	_last_major_tick = tick
-	_family_last_workday[family] = _current_workday
-
-
 func eligible_events(tick: int) -> Array[EventDefinitionScript]:
 	var current_snapshot := _snapshot.duplicate(true)
 	current_snapshot["tick"] = tick
@@ -83,6 +69,27 @@ func choose_next(tick: int) -> EventDefinitionScript:
 	if matches.is_empty():
 		return null
 	return matches[_random_streams.draw(&"workplace_events", matches.size())]
+
+
+func choose_and_start(tick: int) -> EventDefinitionScript:
+	var event := choose_next(tick)
+	if event == null:
+		return null
+	_family_last_workday[event.family] = _current_workday
+	_active_event_ids[event.id] = true
+	if event.major:
+		_last_major_tick = tick
+		_active_major_event = event.id
+	return event
+
+
+func complete_event(event_id: StringName) -> bool:
+	if not _active_event_ids.has(event_id):
+		return false
+	_active_event_ids.erase(event_id)
+	if _active_major_event == event_id:
+		_active_major_event = &""
+	return true
 
 
 func _family_was_recent(family: StringName) -> bool:

@@ -8,4 +8,5 @@ id = &"nib"
 display_name = "Nib Copperthumb"
 species = &"goblin"
 job_id = &"miner"
-traits = Array[StringName]([&"miner", &"cautious"])
+traits = Array[StringName]([&"cautious"])
+event_role_tags = Array[StringName]([&"miner"])
