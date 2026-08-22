@@ -12,10 +12,14 @@ var evidence_score := 0
 var deadline_tick := 0
 
 
-func _init(grievance_id: StringName, incident: IncidentRecord) -> void:
+func _init(
+	grievance_id: StringName,
+	grievance_issue: StringName,
+	grievance_affected_workers: Array[StringName]
+) -> void:
 	id = grievance_id
-	issue = incident.issue
-	affected_workers = incident.affected_workers
+	issue = grievance_issue
+	affected_workers = grievance_affected_workers.duplicate()
 
 
 func add_evidence(record: EvidenceRecord) -> void:
@@ -32,3 +36,18 @@ func advance_deadline(tick: int) -> void:
 		return
 	if tick > deadline_tick:
 		phase = &"expired"
+
+
+func expire(deadline: int) -> void:
+	if phase in TERMINAL_PHASES:
+		return
+	deadline_tick = deadline
+	phase = &"expired"
+
+
+func snapshot() -> GrievanceState:
+	var copied_state := GrievanceState.new(id, issue, affected_workers)
+	copied_state.phase = phase
+	copied_state.evidence_score = evidence_score
+	copied_state.deadline_tick = deadline_tick
+	return copied_state

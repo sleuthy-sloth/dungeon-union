@@ -4,9 +4,11 @@ extends RefCounted
 static func run(t: TestCase) -> void:
 	_records_preserve_their_constructor_values(t)
 	_reporting_and_evidence_follow_the_lifecycle(t)
+	_retrieved_state_cannot_mutate_service_state(t)
 	_terminal_grievances_ignore_new_evidence(t)
 	_invalid_grievance_ids_are_safe_no_ops(t)
 	_deadlines_expire_only_after_their_logical_tick(t)
+	_late_evidence_expires_the_grievance_on_insertion(t)
 
 
 static func _records_preserve_their_constructor_values(t: TestCase) -> void:
@@ -40,14 +42,30 @@ static func _reporting_and_evidence_follow_the_lifecycle(t: TestCase) -> void:
 	t.equal(service.get_state(id).evidence_score, 2, "evidence reliability accumulates")
 
 
+static func _retrieved_state_cannot_mutate_service_state(t: TestCase) -> void:
+	var service := GrievanceService.new()
+	var id := service.report(IncidentRecord.new(&"gas_04", &"unsafe_fumes", [&"nib"], 10))
+	var view := service.get_state(id)
+	view.phase = &"documented"
+	view.evidence_score = 99
+	view.deadline_tick = 99
+	view.affected_workers.append(&"brakka")
+	var state := service.get_state(id)
+
+	t.equal(state.phase, &"reported", "retrieved phase mutation cannot bypass the service")
+	t.equal(state.evidence_score, 0, "retrieved score mutation cannot bypass the service")
+	t.equal(state.deadline_tick, 0, "retrieved deadline mutation cannot bypass the service")
+	t.equal(state.affected_workers, [&"nib"], "retrieved worker mutation cannot bypass the service")
+
+
 static func _terminal_grievances_ignore_new_evidence(t: TestCase) -> void:
 	var service := GrievanceService.new()
 	var id := service.report(IncidentRecord.new(&"gas_02", &"unsafe_fumes", [&"nib"], 10))
 	service.add_evidence(id, EvidenceRecord.new(&"testimony", 2, 30))
 	service.advance_deadlines(31)
-	var expired := service.get_state(id)
 
 	service.add_evidence(id, EvidenceRecord.new(&"inspection", 5, 40))
+	var expired := service.get_state(id)
 	t.equal(expired.phase, &"expired", "adding evidence to an expired grievance has no effect")
 	t.equal(expired.evidence_score, 2, "expired grievance retains its evidence score")
 	t.equal(expired.deadline_tick, 30, "expired grievance retains its deadline")
@@ -69,3 +87,15 @@ static func _deadlines_expire_only_after_their_logical_tick(t: TestCase) -> void
 	t.equal(service.get_state(id).phase, &"documented", "deadline tick itself remains valid")
 	service.advance_deadlines(31)
 	t.equal(service.get_state(id).phase, &"expired", "deadline expiry is deterministic")
+
+
+static func _late_evidence_expires_the_grievance_on_insertion(t: TestCase) -> void:
+	var service := GrievanceService.new()
+	service.advance_deadlines(31)
+	var id := service.report(IncidentRecord.new(&"gas_05", &"unsafe_fumes", [&"nib"], 10))
+
+	service.add_evidence(id, EvidenceRecord.new(&"testimony", 2, 30))
+	var state := service.get_state(id)
+	t.equal(state.phase, &"expired", "late evidence expires the grievance instead of documenting it")
+	t.equal(state.evidence_score, 0, "late evidence does not contribute a usable score")
+	t.equal(state.deadline_tick, 30, "late evidence preserves the expired deadline")
