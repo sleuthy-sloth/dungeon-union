@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WorkerDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/worker_definition.gd" id="1_worker"]
+
+[resource]
+script = ExtResource("1_worker")
+id = &"kora"
+display_name = "Kora Tripwire"
+species = &"hobgoblin"
+job_id = &"alarm_watcher"
+traits = Array[StringName]([&"alarm_watcher", &"steady"])

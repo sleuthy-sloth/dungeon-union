@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/events/event_definition.gd" id="1_event"]
+
+[resource]
+script = ExtResource("1_event")
+id = &"adventurer_alarm"
+family = &"adventurer_alarm"
+issue = &"cave_in_prevention"
+minimum_tick = 180
+major = true
+required_worker_tags = Array[StringName]([&"alarm_watcher"])

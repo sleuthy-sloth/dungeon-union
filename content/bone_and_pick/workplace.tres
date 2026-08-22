@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WorkplaceDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/workplace_definition.gd" id="1_workplace"]
+
+[resource]
+script = ExtResource("1_workplace")
+id = &"bone_and_pick"
+worker_ids = Array[StringName]([&"nib", &"brakka", &"clatter", &"drusk", &"ember", &"fizz", &"grib", &"hush", &"ivor", &"jink", &"kora", &"lute"])
+job_ids = Array[StringName]([&"miner", &"shoring_carpenter", &"tool_mender", &"lantern_tender", &"alarm_watcher", &"hauler"])
+dispute_ids = Array[StringName]([&"cave_in_prevention", &"lantern_fume_exposure", &"maintenance_pay"])
+event_ids = Array[StringName]([&"cave_in_risk", &"lantern_fumes", &"unpaid_maintenance", &"adventurer_alarm", &"foreman_intimidation", &"spontaneous_mutual_aid"])

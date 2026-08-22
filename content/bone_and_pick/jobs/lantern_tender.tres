@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="JobDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/job_definition.gd" id="1_job"]
+
+[resource]
+script = ExtResource("1_job")
+id = &"lantern_tender"
+display_name = "Lantern Tender"
+workstation_tags = Array[StringName]([&"lantern_rack"])

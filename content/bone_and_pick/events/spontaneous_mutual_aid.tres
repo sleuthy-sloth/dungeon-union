@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/events/event_definition.gd" id="1_event"]
+
+[resource]
+script = ExtResource("1_event")
+id = &"spontaneous_mutual_aid"
+family = &"spontaneous_mutual_aid"
+issue = &""
+minimum_tick = 300
+major = false
+required_worker_tags = Array[StringName]([&"mutual_aid_steward", &"hauler"])

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="JobDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/job_definition.gd" id="1_job"]
+
+[resource]
+script = ExtResource("1_job")
+id = &"shoring_carpenter"
+display_name = "Shoring Carpenter"
+workstation_tags = Array[StringName]([&"support_gallery"])
