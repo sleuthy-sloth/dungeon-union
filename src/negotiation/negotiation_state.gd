@@ -19,14 +19,20 @@ func _init(
 	worker_priorities: Dictionary = {}
 ) -> void:
 	for support_id in evidence:
+		var normalized_support_id := _normalize_stable_id(support_id)
+		if normalized_support_id.is_empty():
+			continue
 		var strength: Variant = evidence[support_id]
 		if typeof(strength) == TYPE_INT or typeof(strength) == TYPE_FLOAT:
-			_evidence[StringName(support_id)] = maxi(0, int(strength))
+			_evidence[normalized_support_id] = maxi(0, int(strength))
 	solidarity = clampi(initial_solidarity, 0, 100)
 	participation = clampi(initial_participation, 0, 100)
 	treasury = maxi(0, initial_treasury)
 	public_support = clampi(initial_public_support, 0, 100)
 	for worker_id in worker_priorities:
+		var normalized_worker_id := _normalize_stable_id(worker_id)
+		if normalized_worker_id.is_empty():
+			continue
 		var raw_worker: Variant = worker_priorities[worker_id]
 		if not raw_worker is Dictionary:
 			continue
@@ -37,10 +43,13 @@ func _init(
 			continue
 		var priorities: Dictionary = {}
 		for issue_id in raw_priorities:
+			var normalized_issue_id := _normalize_stable_id(issue_id)
+			if normalized_issue_id.is_empty():
+				continue
 			var weight: Variant = raw_priorities[issue_id]
 			if typeof(weight) == TYPE_INT or typeof(weight) == TYPE_FLOAT:
-				priorities[StringName(issue_id)] = maxi(0, int(weight))
-		_workers[StringName(worker_id)] = {
+				priorities[normalized_issue_id] = maxi(0, int(weight))
+		_workers[normalized_worker_id] = {
 			"trust": clampi(int(raw_trust), 0, 100),
 			"priorities": priorities,
 		}
@@ -78,3 +87,21 @@ func priorities_for(worker_id: StringName) -> Dictionary:
 		return {}
 	var priorities: Dictionary = raw_priorities
 	return priorities.duplicate(true)
+
+
+func normalized_copy() -> NegotiationState:
+	return load("res://src/negotiation/negotiation_state.gd").new(
+		_evidence,
+		solidarity,
+		participation,
+		treasury,
+		public_support,
+		_workers
+	)
+
+
+static func _normalize_stable_id(value: Variant) -> StringName:
+	if typeof(value) != TYPE_STRING and typeof(value) != TYPE_STRING_NAME:
+		return &""
+	var text := String(value).strip_edges()
+	return StringName(text) if not text.is_empty() else &""

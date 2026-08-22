@@ -11,7 +11,7 @@ var _issues: Dictionary[StringName, BargainingIssueScript] = {}
 
 
 func _init(state: NegotiationStateScript, issues: Array[BargainingIssueScript]) -> void:
-	_state = state
+	_state = NegotiationStateScript.new() if state == null else state.normalized_copy()
 	for issue in issues:
 		if issue != null and not issue.id.is_empty():
 			_issues[issue.id] = issue
@@ -99,14 +99,7 @@ func ratify(package: Dictionary) -> Dictionary:
 			yes_votes.append(worker_id)
 		else:
 			no_votes.append(worker_id)
-		var priority_id := _strongest_priority(priorities)
-		explanations[worker_id] = "%s: %s is the strongest priority; trust %d; package support %d; vote score %d" % [
-			"yes" if votes_yes else "no",
-			priority_id,
-			trust,
-			package_score,
-			score,
-		]
+		explanations[worker_id] = _qualitative_explanation(priorities, package, trust, votes_yes)
 	return {
 		"ratified": yes_votes.size() > no_votes.size(),
 		"yes_votes": yes_votes,
@@ -160,3 +153,53 @@ func _strongest_priority(priorities: Dictionary) -> StringName:
 		return left_weight > right_weight
 	)
 	return ids[0] if not ids.is_empty() else &"none"
+
+
+func _qualitative_explanation(
+	priorities: Dictionary,
+	package: Dictionary,
+	trust: int,
+	votes_yes: bool
+) -> String:
+	var decisive_priority := _strongest_priority(priorities)
+	var positive_factors: Array[String] = []
+	var negative_factors: Array[String] = []
+	if trust >= 65:
+		positive_factors.append("strong union trust")
+	elif trust >= 45:
+		positive_factors.append("some union trust")
+		negative_factors.append("union trust remains mixed")
+	else:
+		negative_factors.append("weak union trust")
+	var decisive_issue: BargainingIssueScript = _issues.get(decisive_priority)
+	var decisive_rank := _package_rank(package, decisive_priority)
+	if decisive_issue == null or decisive_rank == 0:
+		negative_factors.append("decisive priority remains unmet")
+	elif decisive_rank >= decisive_issue.max_rank:
+		positive_factors.append("decisive priority is fully addressed")
+	else:
+		positive_factors.append("decisive priority is partly addressed")
+		negative_factors.append("strongest available protection was not secured")
+	var supporting_addressed := false
+	var supporting_unmet := false
+	for issue_id in priorities:
+		if StringName(issue_id) == decisive_priority or int(priorities[issue_id]) <= 0:
+			continue
+		if _package_rank(package, StringName(issue_id)) > 0:
+			supporting_addressed = true
+		else:
+			supporting_unmet = true
+	if supporting_addressed:
+		positive_factors.append("supporting priorities receive protection")
+	if supporting_unmet:
+		negative_factors.append("supporting priorities remain unmet")
+	if positive_factors.is_empty():
+		positive_factors.append("no broad positive factor")
+	if negative_factors.is_empty():
+		negative_factors.append("no broad negative factor")
+	return "%s — decisive priority: %s; positive factors: %s; negative factors: %s" % [
+		"yes" if votes_yes else "no",
+		decisive_priority,
+		", ".join(positive_factors),
+		", ".join(negative_factors),
+	]
