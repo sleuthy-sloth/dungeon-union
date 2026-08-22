@@ -11,9 +11,7 @@ var workplaces: Dictionary[StringName, WorkplaceDefinition] = {}
 
 
 func rebuild_indexes() -> void:
-    workers.clear()
-    jobs.clear()
-    workplaces.clear()
+    clear_indexes()
 
     for item in worker_items:
         if item != null and not item.id.is_empty():
@@ -24,3 +22,9 @@ func rebuild_indexes() -> void:
     for item in workplace_items:
         if item != null and not item.id.is_empty():
             workplaces[item.id] = item
+
+
+func clear_indexes() -> void:
+    workers.clear()
+    jobs.clear()
+    workplaces.clear()
