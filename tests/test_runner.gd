@@ -6,6 +6,7 @@ func _init() -> void:
         "res://tests/smoke/test_app_root.gd",
         "res://tests/content/test_content_validator.gd",
         "res://tests/simulation/test_deterministic_shift.gd",
+        "res://tests/grievances/test_grievance_lifecycle.gd",
     ]:
         load(script_path).run(t)
     for failure in t.failures:
