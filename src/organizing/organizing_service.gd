@@ -12,6 +12,9 @@ const EXECUTABLE_ACTIONS: Array[StringName] = [
 ]
 const LOCKED_ACTIONS: Array[StringName] = [&"walkout", &"strike"]
 const UNCERTAINTY_MARGIN := 10
+const RESOURCE_SPEND_ORDER: Array[StringName] = [
+	&"treasury", &"solidarity", &"public_support", &"organizer_capacity",
+]
 const ACTION_COSTS: Dictionary[StringName, Dictionary] = {
 	&"informal": {&"solidarity": 2},
 	&"grievance": {&"solidarity": 1},
@@ -82,8 +85,9 @@ func execute(proposal: ActionProposalScript) -> Dictionary:
 			"blocker": action_forecast.blocker,
 			"ready_workers": action_forecast.ready_workers.duplicate(),
 		}
-	for kind in ACTION_COSTS[proposal.action]:
-		_resources.apply_delta(kind, int(ACTION_COSTS[proposal.action][kind]))
+	for kind in RESOURCE_SPEND_ORDER:
+		if ACTION_COSTS[proposal.action].has(kind):
+			_resources.apply_delta(kind, int(ACTION_COSTS[proposal.action][kind]))
 	return {
 		"executed": true,
 		"action": proposal.action,
@@ -134,9 +138,7 @@ func _blocker_for(proposal: ActionProposalScript, ready_count: int) -> String:
 	var required_ready := _required_ready_count(proposal.action)
 	if ready_count < required_ready:
 		return "requires at least %d ready workers" % required_ready
-	if proposal.action == &"work_to_rule" and _resources.treasury < 5:
-		return "requires 5 treasury, has %d" % _resources.treasury
-	return ""
+	return _resource_blocker_for(proposal.action)
 
 
 func _has_documented_grievance(grievance_id: StringName) -> bool:
@@ -151,6 +153,31 @@ func _required_ready_count(action: StringName) -> int:
 			return (_workers.size() / 2) + 1
 		_:
 			return 1
+
+
+func _resource_blocker_for(action: StringName) -> String:
+	for kind in RESOURCE_SPEND_ORDER:
+		var delta := int(ACTION_COSTS[action].get(kind, 0))
+		if delta >= 0:
+			continue
+		var required := -delta
+		var available := _resource_amount(kind)
+		if available < required:
+			return "requires %d %s, has %d" % [required, kind, available]
+	return ""
+
+
+func _resource_amount(kind: StringName) -> int:
+	match kind:
+		&"solidarity":
+			return _resources.solidarity
+		&"treasury":
+			return _resources.treasury
+		&"public_support":
+			return _resources.public_support
+		&"organizer_capacity":
+			return _resources.organizer_capacity
+	return 0
 
 
 func _sorted_worker_ids() -> Array[StringName]:

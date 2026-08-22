@@ -10,6 +10,7 @@ static func run(t: TestCase) -> void:
 	_executable_ranks_enforce_their_prerequisites(t)
 	_locked_future_actions_remain_forecastable(t)
 	_execution_applies_only_the_rank_resource_cost(t)
+	_work_to_rule_preflights_every_negative_cost(t)
 	_resources_clamp_to_their_supported_bounds(t)
 	_service_copies_worker_and_grievance_inputs(t)
 
@@ -28,7 +29,7 @@ static func _forecast_names_workers_by_individual_consent(t: TestCase) -> void:
 
 
 static func _executable_ranks_enforce_their_prerequisites(t: TestCase) -> void:
-	var service: Variant = OrganizingServiceScript.fixture_with_workers([75, 69, 20], UnionResourcesScript.new(0, 5))
+	var service: Variant = OrganizingServiceScript.fixture_with_workers([75, 69, 20], UnionResourcesScript.new(50, 5, 50))
 	var case_state := GrievanceStateScript.new(&"gas_case", &"unsafe_fumes", [&"worker_1"])
 	case_state.phase = &"documented"
 	service.register_grievance(case_state)
@@ -84,6 +85,36 @@ static func _execution_applies_only_the_rank_resource_cost(t: TestCase) -> void:
 	t.check(not locked.executed, "locked future action cannot mutate resources")
 	t.equal(locked.blocker, "action is locked in this slice: strike", "failed execution returns the forecast blocker")
 	t.equal(service.resources_snapshot().treasury, 0, "failed execution leaves resources unchanged")
+
+
+static func _work_to_rule_preflights_every_negative_cost(t: TestCase) -> void:
+	var documented := GrievanceStateScript.new(&"gas_case", &"unsafe_fumes", [&"worker_1"])
+	documented.phase = &"documented"
+	var no_solidarity: Variant = OrganizingServiceScript.fixture_with_workers(
+		[90, 90, 20], UnionResourcesScript.new(0, 5, 50, 1)
+	)
+	no_solidarity.register_grievance(documented)
+	var solidarity_result: Variant = no_solidarity.execute(ActionProposalScript.new(&"work_to_rule", &"gas_case", 60))
+	t.check(not solidarity_result.executed, "work-to-rule cannot partially spend missing solidarity")
+	t.equal(solidarity_result.blocker, "requires 5 solidarity, has 0", "solidarity blocker is exact")
+	t.equal(
+		no_solidarity.resources_snapshot(),
+		{"solidarity": 0, "treasury": 5, "public_support": 50, "organizer_capacity": 1},
+		"solidarity rejection leaves every resource unchanged"
+	)
+
+	var no_public_support: Variant = OrganizingServiceScript.fixture_with_workers(
+		[90, 90, 20], UnionResourcesScript.new(50, 5, 0, 1)
+	)
+	no_public_support.register_grievance(documented)
+	var public_support_result: Variant = no_public_support.execute(ActionProposalScript.new(&"work_to_rule", &"gas_case", 60))
+	t.check(not public_support_result.executed, "work-to-rule cannot partially spend missing public support")
+	t.equal(public_support_result.blocker, "requires 2 public_support, has 0", "public support blocker is exact")
+	t.equal(
+		no_public_support.resources_snapshot(),
+		{"solidarity": 50, "treasury": 5, "public_support": 0, "organizer_capacity": 1},
+		"public support rejection leaves every resource unchanged"
+	)
 
 
 static func _resources_clamp_to_their_supported_bounds(t: TestCase) -> void:
