@@ -161,15 +161,15 @@ Godot recognizes the preset and reports no other export configuration error afte
 
 ## External Fix Round 1 — 2026-08-22
 
-This round supersedes the earlier statements that expanded restoration and append-only incident history were deferred. All three Critical and three Important external findings were accepted and fixed without bypassing Tasks 3–7 public APIs.
+This round superseded the earlier statements that expanded restoration and append-only incident history were deferred. Its occurrence, restoration, and worker-causality work remained valid, but the later Round 2 re-review found that the public organizing route, focused-Tab proof, and pre-settle layout claims below were overstated. Those three statements are explicitly corrected in the Round 2 section.
 
 ### Findings and implementation
 
-1. **Atomic, idempotent actions:** `GrievanceState.transition_action()` now models the action that ends a case. Informal resolution is valid from a reported/investigating/documented case and does not manufacture evidence; grievance, petition, and work-to-rule require documentation. `OrganizingService.execute_atomically()` completes the authoritative grievance transition before applying its already-validated resource delta. The controller completes the runtime event only after both succeed. Repeats of all four actions leave resources and negotiation unchanged.
+1. **Atomic action integration (incomplete in this round):** `GrievanceState.transition_action()` modeled the action that ended a case, and the controller used `execute_atomically()`. However, the separate public `OrganizingService.execute()` route still applied resources without a transition. The prior “all public routes are idempotent” implication was incorrect; Round 2 removes that bypass.
 2. **Authoritative worker causality:** all 12 production `WorkerDefinition` resources now author initial trust, action willingness, and issue-specific bargaining priorities. `WorkplaceSimulation.create_from_definitions()` is the sole source of worker state; organizing consumes synchronized copied views, while the new `BoneAndPickNegotiationComposer` derives evidence, participation, named-worker trust, priorities, and resources from public copied views. The acceptance facade documents the actual authored event occurrence and affected role-tag workers rather than inventing `unsafe_fumes_case` or a second worker population. Independent counterfactuals cover evidence, treasury, willingness/participation, and Nib's trust.
 3. **Recurring occurrence identity:** an occurrence/grievance ID now includes the definition ID and start tick, while `runtime_id`/`definition_id` remain the stable authored event ID used for director completion and marker placement. Read views publish terminal-filtered `active_incidents` separately from `incident_history`; resolved, expired, and withdrawn cases cannot enter active cycling. The director prevents a still-active minor definition from duplicating, and terminal grievance deadlines release runtime blockers. A deterministic recurrence test resolves intervening authored occurrences, reaches the same family after its two-workday cooldown, and resolves the second unique occurrence independently.
-4. **Real scene-tree input:** the mine owns a central `MineInputSurface` whose `gui_input` signal handles primary/middle drag, wheel, magnification, and pan gestures. Keyboard actions use named `InputMap` bindings in `_shortcut_input`, so Tab reaches incident cycling while a worker button owns focus. Worker and incident rows are real focusable buttons that send typed commands; worker selection publishes name, species/job, fatigue, trust, willingness, and priorities in the contextual case file. The acceptance dispatches input through an instantiated scene tree. A compatibility `_unhandled_input` adapter is inert while inside a live tree and exists only for the older detached controller unit test.
-5. **Scale-aware accessible reflow:** the top rail and both side dockets now use clipped, keyboard-scrollable content regions; the union hall uses the same bounded scrollable-canvas treatment. UI scale uniformly scales content rather than growing fonts inside fixed coordinates. Dyslexia font, contrast, and reduced-motion settings propagate to HUD, mine, and hall. Acceptance exercises 0.75×, 1×, 1.5×, and 2× and measures every visible control rectangle, region intersection, viewport containment, and focus style. The pass required moving three formerly overlapping docket labels/controls; it is not a synthetic constant result.
+4. **Real scene-tree input (focused-Tab proof incomplete in this round):** the mine owned a central `MineInputSurface`, and keyboard actions had named `InputMap` bindings. The initial test allowed a no-op when only one incident was active, and `_shortcut_input` ran too late to preempt GUI focus traversal. Round 2 adds an exact two-occurrence viewport-dispatch assertion and handles gameplay Tab earlier.
+5. **Scale-aware accessible reflow (settlement proof incomplete in this round):** the top rail and side dockets became scrollable, but the side content remained fixed-position and the inspection method used untransformed pre-settle rectangles. The earlier “measures every visible control rectangle” statement was incorrect. Round 2 replaces side-panel positioning with container flow and measures settled, transformed, clipped rectangles using long realistic content.
 6. **General durable restoration:** public restore entry points now exist for workplace simulation/worker views, grievances, organizing resources, campaign upgrades, event RNG/director progression, and runtime progression. Grievance snapshots preserve reported, documented, resolved, and expired phases, evidence, deadlines, affected workers, and resolved action. Simulation and event RNG stream states are durable. The fixture rebuilds services only through these public constructors/views and restores resources, authored workers, campaign purchases, event progression, active occurrence, strategy, and negotiation result without recomputation or dictionary mutation.
 
 ### Strict TDD evidence
@@ -228,3 +228,70 @@ The presentation remains coherent with the labor-pamphlet/storybook direction: a
 No new architectural conflict with Tasks 3–7 was found. `WorkplaceController` remains the only continuous fixed-tick bridge; `AppRoot` still has no hidden simulation loop. Public restore functions mutate only their owning service internals, and fixture/presentation code consumes commands and copied views.
 
 The external three-player comprehension gate, final-art/audio rendered 30-agent target-Mac 60 FPS gate, arm64 export/launch gate (local Godot 4.7.2 export template still absent), and reproducible visual screenshot remain unchanged external limitations. Headless tests do not claim those gates.
+
+## External Fix Round 2 — 2026-08-22
+
+Round 2 addressed only the four residual re-review findings. The approved occurrence identity/history and comprehensive restoration paths were not redesigned.
+
+### Residual fixes
+
+1. **No public organizing bypass:** `OrganizingService` now owns or receives one authoritative `GrievanceService`. Its sole public `execute(proposal)` path preflights the proposal, commits `transition_action()` on that authoritative occurrence, and only then applies the non-failing resource delta. The optional-Callable `execute_atomically()` route was removed. Public `grievance_view()`/`grievance_views()` return copies for causality and tests. `GrievanceService.import_state()` accepts only a new occurrence, so a caller cannot re-register a stale documented snapshot to reopen a terminal case. Direct service tests execute informal, grievance, petition, and work-to-rule twice and assert terminal action state, rejected repeat, unchanged resources, stable vote, and zero evidence/no ratification for informal resolution.
+2. **Fixture issue contract:** `active_occurrence_view()` publishes a copied authored occurrence. `document_issue(issue)` now returns `false` without mutation unless the requested issue exactly matches that occurrence. Acceptance first attempts `unsafe_fumes` against the authored `cave_in_prevention` occurrence and proves the entire durable snapshot is unchanged, then documents the actual issue and verifies occurrence ID and issue identity.
+3. **Focused gameplay Tab:** unmodified gameplay Tab is handled in `_input()` before GUI traversal, cycles the exact next active occurrence, and calls `Viewport.set_input_as_handled()`. Modified Shift-Tab is excluded from gameplay handling and remains a GUI focus-navigation route. The real viewport test creates two simultaneous authored occurrences (`cave_in_risk@00000001` and `spontaneous_mutual_aid@00000300`), focuses Nib's button, dispatches Tab through the root viewport, and asserts the exact second occurrence ID. It then dispatches Shift-Tab and proves focus changes without cycling the incident.
+4. **Settled container flow:** the left docket and right case file now use `VBoxContainer`/`GridContainer` flow inside their clipped scroll regions. Worker header, roster, grievance heading, empty/incident rows, narrative, evidence, forecasts, action grid, result, and hall route reserve real minimum heights. After text or accessibility changes, a deferred settlement sizes multiline labels from their actual line count and extends scroll content to the container minimum. `accessibility_layout_view()` publishes the transformed visible leaf rectangles clipped to each scroll viewport, calculates intersections from those same rectangles, and checks focus styles. Acceptance supplies long incident/worker content, waits two layout frames, and independently checks viewport bounds and same-region intersections at 0.75×, 1×, 1.5×, and 2×.
+
+### Round 2 TDD evidence
+
+The new assertions were run against Round 1 commit `ba8ca6483e40a2b4cd65b7476709fe93132c7057` before production changes. The behavioral RED run exited `1` with:
+
+```text
+organizing publishes authoritative copied grievance views
+fixture exposes the copied active authored occurrence
+unmodified Tab cycles to the exact next occurrence while a button owns focus:
+  expected spontaneous_mutual_aid@00000300, got cave_in_risk@00000001
+0.75 settled layout publishes transformed visible rectangles
+1.00 settled layout publishes transformed visible rectangles
+1.50 settled layout publishes transformed visible rectangles
+2.00 settled layout publishes transformed visible rectangles
+```
+
+After the initial service fix, an additional direct adversarial RED proved a stale caller snapshot could still reopen the case:
+
+```text
+informal stale caller snapshot cannot reopen the authoritative grievance
+informal second public execution is rejected
+informal second public execution cannot change resources
+grievance stale caller snapshot cannot reopen the authoritative grievance
+petition stale caller snapshot cannot reopen the authoritative grievance
+work_to_rule stale caller snapshot cannot reopen the authoritative grievance
+```
+
+`GrievanceService.import_state()` was then constrained to new occurrence IDs, closing that route. Each focused cycle was rerun before moving to the next residual; the final registered suite was green before verification.
+
+Fresh Round 2 verification:
+
+| Check | Result |
+|---|---|
+| Registered focused/full suite | PASS, exit 0 |
+| 30-agent stress | PASS, exit 0; 240 ticks, 9.769 ms, backlog 0 |
+| Main-scene startup `--quit-after 2` | PASS, exit 0; no project parse/resource/runtime errors |
+| `git diff --check` | PASS, no whitespace errors |
+
+```sh
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://tests/test_runner.gd --log-file /tmp/dungeon-union-external-fix2-commit-full.log
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://tests/performance/workplace_stress.gd --log-file /tmp/dungeon-union-external-fix2-commit-stress.log
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --quit-after 2 --log-file /tmp/dungeon-union-external-fix2-commit-startup.log
+git diff --check
+```
+
+All three Godot commands print the known macOS sandbox CA-certificate lookup diagnostic after project output; each exits `0`, and the project logs contain no assertion, parse, resource, or runtime error.
+
+### Round 2 self-review
+
+- Presentation and fixture code still consume copied views and typed commands; neither reaches into service dictionaries.
+- `WorkplaceController` remains the only `_process()` fixed-tick bridge. `AppRoot` still has no simulation loop.
+- Container flow retains the paper-docket/cut-corner presentation rather than replacing it with generic cards. Long narrative now increases scroll extent instead of painting over evidence/actions.
+- Tab and Shift-Tab have distinct, tested meanings. Buttons retain Safety Teal focus borders, so the focus-navigation route remains visible and color-independent.
+- No changes were made to approved occurrence ID construction, active/history filtering, RNG durability, or campaign restoration beyond passing the existing full suite.
+
+External limitations are unchanged: three-player comprehension, rendered final-art/audio 30-agent performance on the target Mac, arm64 export/launch without the missing Godot 4.7.2 template, and reproducible screenshot capture remain external gates.

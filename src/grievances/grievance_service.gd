@@ -19,6 +19,14 @@ static func restore(states: Array, current_tick: int = 0) -> GrievanceService:
 	return service
 
 
+func import_state(state: GrievanceState) -> bool:
+	if state == null or state.id.is_empty() or _states.has(state.id):
+		return false
+	_order.append(state.id)
+	_states[state.id] = state.snapshot()
+	return true
+
+
 func report(incident: IncidentRecord) -> StringName:
 	if incident == null or incident.id.is_empty():
 		return &""

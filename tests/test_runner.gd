@@ -23,7 +23,10 @@ func _run_all() -> void:
 		"res://tests/acceptance/test_scene_accessibility.gd",
 		"res://tests/acceptance/test_durable_restoration.gd",
 	]:
-		load(script_path).run(t)
+		if script_path == "res://tests/acceptance/test_scene_accessibility.gd":
+			await load(script_path).run(t)
+		else:
+			load(script_path).run(t)
 	for failure in t.failures:
 		push_error(failure)
 	quit(0 if t.failures.is_empty() else 1)

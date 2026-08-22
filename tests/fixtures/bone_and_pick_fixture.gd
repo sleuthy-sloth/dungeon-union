@@ -33,7 +33,8 @@ func _init(seed: int = 0) -> void:
 	_organizing = OrganizingService.new(
 		_simulation.snapshot().workers,
 		[],
-		UnionResources.new(40, 5, 2, 2)
+		UnionResources.new(40, 5, 2, 2),
+		_grievances
 	)
 
 
@@ -57,19 +58,22 @@ func active_workers() -> Array[Dictionary]:
 	return active
 
 
-func document_issue(issue: StringName) -> void:
-	if issue.is_empty() or _active_occurrence.is_empty():
-		return
+func active_occurrence_view() -> Dictionary:
+	return _active_occurrence.duplicate(true)
+
+
+func document_issue(issue: StringName) -> bool:
+	if issue.is_empty() or _active_occurrence.is_empty() or issue != StringName(_active_occurrence.issue):
+		return false
 	var grievance_id := StringName(_active_occurrence.id)
 	var affected: Array[StringName] = _active_occurrence.affected_workers.duplicate()
 	var incident := IncidentRecord.new(grievance_id, StringName(_active_occurrence.issue), affected, _tick)
 	if _grievances.report(incident).is_empty():
-		return
+		return false
 	_grievances.add_evidence(grievance_id, EvidenceRecord.new(&"worker_testimony", 2, _tick + TICKS_PER_WORKDAY * 5))
-	var state := _grievances.get_state(grievance_id)
-	_organizing.register_grievance(state)
 	if not _grievance_ids.has(grievance_id):
 		_grievance_ids.append(grievance_id)
+	return true
 
 
 func complete_workdays(count: int) -> void:
@@ -147,7 +151,7 @@ func _restore_durable(state: Dictionary) -> void:
 	_tick = maxi(0, int(state.get("tick", 0)))
 	_workday = maxi(1, int(state.get("workday", 1)))
 	_grievances = GrievanceService.restore(state.get("grievances", []), _tick)
-	_organizing = OrganizingService.restore(_simulation.snapshot().workers, _grievances.snapshot(), state.get("resources", {}))
+	_organizing = OrganizingService.restore(_simulation.snapshot().workers, _grievances.snapshot(), state.get("resources", {}), _grievances)
 	_campaign = CampaignState.restore(state.get("campaign", {}))
 	_root.restore_event_progress(state.get("event_progress", {}))
 	_grievance_ids.clear()

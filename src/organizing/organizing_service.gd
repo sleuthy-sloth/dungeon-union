@@ -23,16 +23,18 @@ const ACTION_COSTS: Dictionary[StringName, Dictionary] = {
 }
 
 var _workers: Dictionary[StringName, Dictionary] = {}
-var _grievances: Dictionary[StringName, GrievanceStateScript] = {}
+var _grievance_service: GrievanceService
 var _resources: UnionResourcesScript
 
 
 func _init(
 	workers: Array = [],
 	grievance_states: Array = [],
-	resources: UnionResourcesScript = null
+	resources: UnionResourcesScript = null,
+	authoritative_grievances: GrievanceService = null
 ) -> void:
 	_resources = UnionResourcesScript.new() if resources == null else _resources_from_snapshot(resources.snapshot())
+	_grievance_service = GrievanceService.new() if authoritative_grievances == null else authoritative_grievances
 	for worker in workers:
 		if worker is WorkerStateScript:
 			_register_worker_snapshot(worker as WorkerStateScript)
@@ -45,13 +47,14 @@ func _init(
 			register_grievance(GrievanceState.from_dictionary(grievance))
 
 
-static func restore(worker_views: Array, grievance_views: Array, resources: Dictionary) -> OrganizingService:
-	return OrganizingService.new(worker_views, grievance_views, UnionResourcesScript.new(
+static func restore(worker_views: Array, grievance_views: Array, resources: Dictionary, authoritative_grievances: GrievanceService = null) -> OrganizingService:
+	var grievance_service := GrievanceService.restore(grievance_views) if authoritative_grievances == null else authoritative_grievances
+	return OrganizingService.new(worker_views, [], UnionResourcesScript.new(
 		int(resources.get("solidarity", 0)),
 		int(resources.get("treasury", 0)),
 		int(resources.get("public_support", 0)),
 		int(resources.get("organizer_capacity", 1))
-	))
+	), grievance_service)
 
 
 static func fixture_with_workers(
@@ -69,10 +72,7 @@ static func fixture_with_workers(
 
 
 func register_grievance(grievance: GrievanceStateScript) -> bool:
-	if grievance == null or grievance.id.is_empty():
-		return false
-	_grievances[grievance.id] = grievance.snapshot()
-	return true
+	return _grievance_service.import_state(grievance)
 
 
 func forecast(proposal: ActionProposalScript) -> ParticipationForecastScript:
@@ -90,10 +90,6 @@ func forecast(proposal: ActionProposalScript) -> ParticipationForecastScript:
 
 
 func execute(proposal: ActionProposalScript) -> Dictionary:
-	return execute_atomically(proposal, Callable())
-
-
-func execute_atomically(proposal: ActionProposalScript, transition: Callable) -> Dictionary:
 	var action_forecast := forecast(proposal)
 	if not action_forecast.can_execute:
 		return {
@@ -102,7 +98,7 @@ func execute_atomically(proposal: ActionProposalScript, transition: Callable) ->
 			"blocker": action_forecast.blocker,
 			"ready_workers": action_forecast.ready_workers.duplicate(),
 		}
-	if transition.is_valid() and not bool(transition.call()):
+	if not _grievance_service.transition_action(proposal.grievance_id, proposal.action):
 		return {
 			"executed": false,
 			"action": proposal.action,
@@ -129,6 +125,14 @@ func worker_views() -> Array[Dictionary]:
 	for worker_id in _sorted_worker_ids():
 		views.append(_workers[worker_id].duplicate(true))
 	return views
+
+
+func grievance_view(grievance_id: StringName) -> GrievanceStateScript:
+	return _grievance_service.get_state(grievance_id)
+
+
+func grievance_views() -> Array[Dictionary]:
+	return _grievance_service.snapshot()
 
 
 func synchronize_worker_views(views: Array) -> void:
@@ -186,7 +190,8 @@ func _blocker_for(proposal: ActionProposalScript, ready_count: int) -> String:
 
 
 func _has_documented_grievance(grievance_id: StringName) -> bool:
-	return _grievances.has(grievance_id) and _grievances[grievance_id].phase == &"documented"
+	var grievance := _grievance_service.get_state(grievance_id)
+	return grievance != null and grievance.phase == &"documented"
 
 
 func _required_ready_count(action: StringName) -> int:

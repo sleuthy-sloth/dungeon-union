@@ -24,6 +24,12 @@ var _view: Dictionary = {}
 var _settings := AccessibilitySettings.new()
 var _scroll_regions: Array[ScrollContainer] = []
 var _scaled_contents: Array[Control] = []
+var _left_stack: VBoxContainer
+var _right_stack: VBoxContainer
+var _document_button: Button
+var _action_buttons: Array[Button] = []
+var _negotiate_button: Button
+var _hall_button: Button
 
 
 func _ready() -> void:
@@ -31,6 +37,8 @@ func _ready() -> void:
 	_build_fonts()
 	_build_interface()
 	_build_scroll_regions()
+	_build_panel_stacks()
+	call_deferred(&"_settle_panel_layout")
 	queue_redraw()
 
 
@@ -62,6 +70,7 @@ func update_view(view: Dictionary) -> void:
 			incident_button.text = "⚠ %-15s %s" % [String(incident.get("title", incident.id)).left(15), String(incident.get("grievance_phase", "reported")).to_upper()]
 			incident_button.button_pressed = StringName(incident.id) == StringName(view.get("selected_incident_id", &""))
 	_update_case_file(view)
+	call_deferred(&"_settle_panel_layout")
 	queue_redraw()
 
 
@@ -76,6 +85,7 @@ func set_accessibility(settings: AccessibilitySettings) -> void:
 			child.add_theme_font_size_override("font_size", int(child.get_meta("base_font_size")))
 			var base_font: Font = child.get_meta("base_font")
 			child.add_theme_font_override("font", _accessible_font if _settings.dyslexia_friendly_font else base_font)
+	call_deferred(&"_settle_panel_layout")
 	queue_redraw()
 
 
@@ -98,27 +108,22 @@ func context_text() -> String:
 
 
 func accessibility_layout_view() -> Dictionary:
+	var viewport_rect := Rect2(Vector2.ZERO, Vector2(1440, 900))
 	var inside := true
 	for region in _scroll_regions:
-		inside = inside and Rect2(Vector2.ZERO, Vector2(1440, 900)).encloses(region.get_rect())
+		inside = inside and viewport_rect.encloses(region.get_global_rect())
+	var visible_rects := _visible_layout_rects()
 	var non_intersecting := true
-	for left_index in _scroll_regions.size():
-		for right_index in range(left_index + 1, _scroll_regions.size()):
-			non_intersecting = non_intersecting and not _scroll_regions[left_index].get_rect().intersects(_scroll_regions[right_index].get_rect())
-	for content in _scaled_contents:
-		var visible_controls: Array[Control] = []
-		var base_size: Vector2 = content.get_meta("base_size")
-		for child in content.get_children():
-			if child is Control and child.visible:
-				visible_controls.append(child)
-				inside = inside and Rect2(Vector2.ZERO, base_size).encloses(child.get_rect())
-		for left_index in visible_controls.size():
-			for right_index in range(left_index + 1, visible_controls.size()):
-				non_intersecting = non_intersecting and not visible_controls[left_index].get_rect().intersects(visible_controls[right_index].get_rect())
+	for left_index in visible_rects.size():
+		for right_index in range(left_index + 1, visible_rects.size()):
+			if visible_rects[left_index].region == visible_rects[right_index].region:
+				non_intersecting = non_intersecting and not visible_rects[left_index].rect.intersects(visible_rects[right_index].rect)
+	for item in visible_rects:
+		inside = inside and viewport_rect.encloses(item.rect)
 	var outlined := true
 	for button in find_children("*", "Button", true, false):
 		outlined = outlined and button.focus_mode == Control.FOCUS_ALL and button.has_theme_stylebox_override("focus")
-	return {"all_inside_viewport": inside, "no_intersections": non_intersecting, "focus_outlines": outlined}
+	return {"all_inside_viewport": inside, "no_intersections": non_intersecting, "focus_outlines": outlined, "visible_rects": visible_rects}
 
 
 func _draw() -> void:
@@ -161,8 +166,8 @@ func _build_fonts() -> void:
 func _build_interface() -> void:
 	_labels.time = _label("DAY 01  ·  PAUSED  ·  TICK 0000", Vector2(24, 17), Vector2(410, 36), 16, _data_font, PAPER)
 	_labels.resources = _label("TREASURY  10     SOLIDARITY  60%     PRESSURE  24%", Vector2(465, 17), Vector2(480, 36), 16, _data_font, PAPER)
-	_label("BONE & PICK / SHIFT DOCKET", Vector2(36, 98), Vector2(274, 38), 19, _display_font, COAL)
-	_label("WORKERS                                      FAT", Vector2(37, 148), Vector2(270, 22), 11, _data_font, COAL)
+	_labels.docket_heading = _label("BONE & PICK / SHIFT DOCKET", Vector2(36, 98), Vector2(274, 38), 19, _display_font, COAL)
+	_labels.worker_heading = _label("WORKERS                                      FAT", Vector2(37, 148), Vector2(270, 22), 11, _data_font, COAL)
 	for index in 12:
 		var button := Button.new()
 		button.position = Vector2(34, 183 + index * 39)
@@ -184,7 +189,7 @@ func _build_interface() -> void:
 		button.pressed.connect(_on_worker_pressed.bind(button))
 		add_child(button)
 		_worker_buttons.append(button)
-	_label("OPEN GRIEVANCES", Vector2(37, 651), Vector2(270, 22), 11, _data_font, UNION_RED)
+	_labels.open_grievances = _label("OPEN GRIEVANCES", Vector2(37, 651), Vector2(270, 22), 11, _data_font, UNION_RED)
 	_labels.grievances_list = _label("NO OPEN CASES", Vector2(37, 686), Vector2(270, 126), 11, _data_font, COAL)
 	for index in 4:
 		var incident_button := _button("", Vector2(34, 686 + index * 33), Vector2(278, 30))
@@ -198,23 +203,24 @@ func _build_interface() -> void:
 		incident_button.pressed.connect(_on_incident_pressed.bind(incident_button))
 		_incident_buttons.append(incident_button)
 
-	_label("ACTIVE CASE FILE", Vector2(1132, 100), Vector2(250, 35), 19, _display_font, PAPER)
+	_labels.case_heading = _label("ACTIVE CASE FILE", Vector2(1132, 100), Vector2(250, 35), 19, _display_font, PAPER)
 	_labels.case_title = _label("NO INCIDENT SELECTED", Vector2(1132, 153), Vector2(245, 54), 17, _display_font, BRASS)
 	_labels.case_body = _label("Tab cycles active incidents.\nEvery alarm also appears here in writing.", Vector2(1132, 220), Vector2(238, 118), 14, _body_font, PAPER)
 	_labels.grievance = _label("GRIEVANCE  —\nEVIDENCE   —", Vector2(1132, 350), Vector2(238, 44), 13, _data_font, SAFETY_TEAL)
 	_labels.forecast = _label("DOCUMENT A CASE TO FORECAST", Vector2(1132, 401), Vector2(252, 72), 10, _data_font, PAPER)
 	_labels.action = _label("", Vector2(1132, 638), Vector2(238, 112), 11, _body_font, PAPER)
-	var document := _button("DOCUMENT TESTIMONY", Vector2(1132, 474), Vector2(238, 34))
-	document.pressed.connect(func() -> void: _request_action(&"document"))
+	_document_button = _button("DOCUMENT TESTIMONY", Vector2(1132, 474), Vector2(238, 34))
+	_document_button.pressed.connect(func() -> void: _request_action(&"document"))
 	var action_ids: Array[StringName] = [&"informal", &"grievance", &"petition", &"work_to_rule"]
 	for index in action_ids.size():
 		var action := action_ids[index]
 		var action_button := _button(String(action).replace("_", " ").to_upper(), Vector2(1132 + (index % 2) * 122, 516 + int(index / 2) * 39), Vector2(116, 34))
 		action_button.pressed.connect(_request_action.bind(action))
-	var negotiate := _button("ENTER NEGOTIATION  ›", Vector2(1132, 598), Vector2(238, 34))
-	negotiate.pressed.connect(func() -> void: command_requested.emit(WorkplaceCommandsScript.EnterNegotiationCommand.new()))
-	var hall := _button("UNION HALL  ⌂", Vector2(1132, 758), Vector2(238, 42))
-	hall.pressed.connect(func() -> void: union_hall_requested.emit())
+		_action_buttons.append(action_button)
+	_negotiate_button = _button("ENTER NEGOTIATION  ›", Vector2(1132, 598), Vector2(238, 34))
+	_negotiate_button.pressed.connect(func() -> void: command_requested.emit(WorkplaceCommandsScript.EnterNegotiationCommand.new()))
+	_hall_button = _button("UNION HALL  ⌂", Vector2(1132, 758), Vector2(238, 42))
+	_hall_button.pressed.connect(func() -> void: union_hall_requested.emit())
 
 	_label("TIME", Vector2(960, 4), Vector2(50, 16), 10, _data_font, BRASS)
 	for item in [["Ⅱ", true, 0], ["1×", false, 1], ["2×", false, 2], ["4×", false, 4]]:
@@ -312,6 +318,119 @@ func _create_scroll_region(rect: Rect2, base_size: Vector2, controls: Array) -> 
 		control.position = global_position - rect.position
 	_scroll_regions.append(scroll)
 	_scaled_contents.append(content)
+
+
+func _build_panel_stacks() -> void:
+	_left_stack = VBoxContainer.new()
+	_left_stack.name = "WorkerGrievanceFlow"
+	_left_stack.position = Vector2(16, 14)
+	_left_stack.custom_minimum_size.x = 278
+	_left_stack.add_theme_constant_override("separation", 4)
+	_scaled_contents[1].add_child(_left_stack)
+	_move_to_flow(_labels.docket_heading, _left_stack, 47, "DocketHeading")
+	_move_to_flow(_labels.worker_heading, _left_stack, 31, "WorkerColumns")
+	for index in _worker_buttons.size():
+		_move_to_flow(_worker_buttons[index], _left_stack, 35, "WorkerRow%02d" % index)
+	_move_to_flow(_labels.open_grievances, _left_stack, 31, "OpenGrievancesHeading")
+	_move_to_flow(_labels.grievances_list, _left_stack, 31, "EmptyGrievanceState")
+	for index in _incident_buttons.size():
+		_move_to_flow(_incident_buttons[index], _left_stack, 30, "IncidentRow%02d" % index)
+
+	_right_stack = VBoxContainer.new()
+	_right_stack.name = "ContextCaseFlow"
+	_right_stack.position = Vector2(20, 16)
+	_right_stack.custom_minimum_size.x = 258
+	_right_stack.add_theme_constant_override("separation", 7)
+	_scaled_contents[2].add_child(_right_stack)
+	_move_to_flow(_labels.case_heading, _right_stack, 35, "CaseHeading")
+	_move_to_flow(_labels.case_title, _right_stack, 54, "CaseTitle")
+	_move_to_flow(_labels.case_body, _right_stack, 118, "CaseNarrative")
+	_move_to_flow(_labels.grievance, _right_stack, 44, "CaseEvidence")
+	_move_to_flow(_labels.forecast, _right_stack, 72, "ActionForecast")
+	_move_to_flow(_document_button, _right_stack, 34, "DocumentAction")
+	var action_grid := GridContainer.new()
+	action_grid.name = "ActionChoices"
+	action_grid.columns = 2
+	action_grid.custom_minimum_size = Vector2(258, 73)
+	action_grid.add_theme_constant_override("h_separation", 6)
+	action_grid.add_theme_constant_override("v_separation", 5)
+	_right_stack.add_child(action_grid)
+	for index in _action_buttons.size():
+		_move_to_flow(_action_buttons[index], action_grid, 34, "OrganizingAction%02d" % index, 126)
+	_move_to_flow(_negotiate_button, _right_stack, 34, "NegotiateAction")
+	_move_to_flow(_labels.action, _right_stack, 60, "ActionResult")
+	_move_to_flow(_hall_button, _right_stack, 42, "UnionHallAction")
+
+
+func _move_to_flow(control: Control, container: Container, minimum_height: float, control_name: String, minimum_width: float = 0.0) -> void:
+	var parent := control.get_parent()
+	parent.remove_child(control)
+	container.add_child(control)
+	control.name = control_name
+	control.position = Vector2.ZERO
+	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	control.custom_minimum_size.y = minimum_height
+	if minimum_width > 0.0:
+		control.custom_minimum_size.x = minimum_width
+
+
+func _settle_panel_layout() -> void:
+	_reserve_label_height(_labels.docket_heading, 47)
+	_reserve_label_height(_labels.worker_heading, 31)
+	_reserve_label_height(_labels.open_grievances, 31)
+	_reserve_label_height(_labels.case_title, 54)
+	_reserve_label_height(_labels.case_body, 118)
+	_reserve_label_height(_labels.grievance, 44)
+	_reserve_label_height(_labels.forecast, 72)
+	_reserve_label_height(_labels.action, 60)
+	_refresh_flow_extent(1, _left_stack)
+	_refresh_flow_extent(2, _right_stack)
+
+
+func _reserve_label_height(label: Label, baseline: float) -> void:
+	var line_height := maxi(1, label.get_line_height())
+	var narrative_height := float(maxi(1, label.get_line_count()) * line_height + 8)
+	label.custom_minimum_size.y = maxf(baseline, narrative_height)
+
+
+func _refresh_flow_extent(content_index: int, stack: VBoxContainer) -> void:
+	var content := _scaled_contents[content_index]
+	var base_size: Vector2 = content.get_meta("base_size")
+	base_size.y = maxf(758.0, stack.position.y + stack.get_combined_minimum_size().y + 16.0)
+	content.set_meta("base_size", base_size)
+	content.custom_minimum_size = base_size * _settings.ui_scale
+
+
+func _visible_layout_rects() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for region_index in _scroll_regions.size():
+		var region_rect := _scroll_regions[region_index].get_global_rect()
+		for control in _scaled_contents[region_index].find_children("*", "Control", true, false):
+			if not control is Label and not control is Button:
+				continue
+			if not control.is_visible_in_tree():
+				continue
+			var transformed := _transformed_control_rect(control)
+			var clipped := transformed.intersection(region_rect)
+			if clipped.has_area():
+				result.append({"name": String(control.name), "region": region_index, "rect": clipped})
+	return result
+
+
+func _transformed_control_rect(control: Control) -> Rect2:
+	var transform := control.get_global_transform_with_canvas()
+	var corners := [
+		transform * Vector2.ZERO,
+		transform * Vector2(control.size.x, 0),
+		transform * control.size,
+		transform * Vector2(0, control.size.y),
+	]
+	var minimum: Vector2 = corners[0]
+	var maximum: Vector2 = corners[0]
+	for point in corners.slice(1):
+		minimum = minimum.min(point)
+		maximum = maximum.max(point)
+	return Rect2(minimum, maximum - minimum)
 
 
 func _request_action(action: StringName) -> void:

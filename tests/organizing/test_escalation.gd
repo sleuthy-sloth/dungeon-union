@@ -10,6 +10,7 @@ static func run(t: TestCase) -> void:
 	_executable_ranks_enforce_their_prerequisites(t)
 	_locked_future_actions_remain_forecastable(t)
 	_execution_applies_only_the_rank_resource_cost(t)
+	_public_execution_is_transition_bound_and_idempotent(t)
 	_work_to_rule_preflights_every_negative_cost(t)
 	_resources_clamp_to_their_supported_bounds(t)
 	_service_copies_worker_and_grievance_inputs(t)
@@ -85,6 +86,51 @@ static func _execution_applies_only_the_rank_resource_cost(t: TestCase) -> void:
 	t.check(not locked.executed, "locked future action cannot mutate resources")
 	t.equal(locked.blocker, "action is locked in this slice: strike", "failed execution returns the forecast blocker")
 	t.equal(service.resources_snapshot().treasury, 0, "failed execution leaves resources unchanged")
+
+
+static func _public_execution_is_transition_bound_and_idempotent(t: TestCase) -> void:
+	var composer: Variant = load("res://src/negotiation/bone_and_pick_negotiation_composer.gd").new()
+	for action in [&"informal", &"grievance", &"petition", &"work_to_rule"]:
+		var workers: Array = []
+		for worker_id in [&"nib", &"brakka", &"clatter"]:
+			var worker := WorkerState.new(worker_id)
+			worker.trust = 55
+			worker.action_willingness = 90
+			worker.bargaining_priorities = {&"safety": 3}
+			workers.append(worker)
+		var case_state := GrievanceStateScript.new(StringName("%s_case" % action), &"cave_in_prevention", [&"nib"])
+		if action != &"informal":
+			case_state.phase = &"documented"
+		var service: Variant = OrganizingServiceScript.new(workers, [case_state], UnionResourcesScript.new(40, 5, 2, 1))
+		t.check(service.has_method("grievance_view") and service.has_method("grievance_views"), "organizing publishes authoritative copied grievance views")
+		if not service.has_method("grievance_view") or not service.has_method("grievance_views"):
+			continue
+		var proposal := ActionProposalScript.new(action, case_state.id, 50)
+		var first: Dictionary = service.execute(proposal)
+		t.check(first.executed, "%s public execution commits its grievance transition" % action)
+		var terminal: Variant = service.grievance_view(case_state.id)
+		t.equal(terminal.phase, &"resolved", "%s leaves the authoritative grievance terminal" % action)
+		t.equal(terminal.resolved_action, action, "%s records the committed action" % action)
+		var after_first: Dictionary = service.resources_snapshot()
+		var state_after_first: NegotiationState = composer.compose(service.worker_views(), service.grievance_views(), after_first)
+		var vote_after_first := _ratify_safety(state_after_first)
+		t.check(not service.register_grievance(case_state), "%s stale caller snapshot cannot reopen the authoritative grievance" % action)
+		var repeated: Dictionary = service.execute(proposal)
+		t.check(not repeated.executed, "%s second public execution is rejected" % action)
+		t.equal(service.resources_snapshot(), after_first, "%s second public execution cannot change resources" % action)
+		t.equal(_ratify_safety(composer.compose(service.worker_views(), service.grievance_views(), service.resources_snapshot())).ratified, vote_after_first.ratified, "%s repeat cannot flip negotiation" % action)
+		if action == &"informal":
+			t.equal(state_after_first.evidence_strength(&"fume_testimony"), 0, "informal public execution remains evidence-free")
+			t.check(not vote_after_first.ratified, "evidence-free informal execution cannot ratify a package")
+
+
+static func _ratify_safety(state: NegotiationState) -> Dictionary:
+	var resolver := NegotiationResolver.bone_and_pick(state)
+	return resolver.ratify({
+		&"safety": resolver.press(&"safety", &"fume_testimony"),
+		&"schedule": resolver.press(&"schedule", &""),
+		&"tool_maintenance": resolver.press(&"tool_maintenance", &"tool_ledger"),
+	})
 
 
 static func _work_to_rule_preflights_every_negative_cost(t: TestCase) -> void:

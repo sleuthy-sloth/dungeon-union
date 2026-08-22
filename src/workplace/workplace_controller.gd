@@ -175,6 +175,14 @@ func _process(delta: float) -> void:
 	advance_frame(delta)
 
 
+func _input(event: InputEvent) -> void:
+	if not event is InputEventKey or not event.pressed or event.echo:
+		return
+	if event.is_action_pressed(&"workplace_cycle_incident") and not event.shift_pressed and not event.ctrl_pressed and not event.alt_pressed and not event.meta_pressed:
+		_cycle_incident()
+		get_viewport().set_input_as_handled()
+
+
 func _shortcut_input(event: InputEvent) -> void:
 	if event.is_echo() or not event.is_pressed():
 		return
@@ -186,8 +194,6 @@ func _shortcut_input(event: InputEvent) -> void:
 		apply_command(WorkplaceCommandsScript.SetSpeedCommand.new(2))
 	elif event.is_action_pressed(&"workplace_speed_4"):
 		apply_command(WorkplaceCommandsScript.SetSpeedCommand.new(4))
-	elif event.is_action_pressed(&"workplace_cycle_incident"):
-		_cycle_incident()
 	elif event.is_action_pressed(&"workplace_union_hall"):
 		_open_union_hall()
 
@@ -227,7 +233,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _create_organizing_service() -> void:
-	_organizing = OrganizingService.new(_simulation.snapshot().workers, [], UnionResources.new(40, 5, 2, 2))
+	_organizing = OrganizingService.new(_simulation.snapshot().workers, [], UnionResources.new(40, 5, 2, 2), _grievances)
 
 
 func _record_started_event(event: EventDefinition) -> void:
@@ -263,14 +269,10 @@ func _execute_action(action: StringName, grievance_id: StringName) -> Dictionary
 			return {"executed": false, "action": action, "blocker": "Testimony is already documented."}
 		_grievances.add_evidence(grievance_id, EvidenceRecord.new(&"worker_testimony", 2, _tick + 240))
 		grievance = _grievances.get_state(grievance_id)
-		_organizing.register_grievance(grievance)
 		return {"executed": true, "action": action, "summary": "Testimony documented. Compare the four action forecasts."}
 	if grievance.phase in GrievanceState.TERMINAL_PHASES:
 		return {"executed": false, "blocker": "This grievance action is already complete."}
-	var result := _organizing.execute_atomically(
-		ActionProposal.new(action, grievance_id, 50, false),
-		func() -> bool: return _grievances.transition_action(grievance_id, action)
-	)
+	var result := _organizing.execute(ActionProposal.new(action, grievance_id, 50, false))
 	result["summary"] = "%s completed with %d ready workers." % [String(action).replace("_", " ").capitalize(), result.ready_workers.size()] if result.executed else result.blocker
 	if result.executed:
 		var incident: Variant = _incident_for(grievance_id)
