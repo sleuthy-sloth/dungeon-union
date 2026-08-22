@@ -100,6 +100,13 @@ func resources_snapshot() -> Dictionary:
 	return _resources.snapshot()
 
 
+func worker_views() -> Array[Dictionary]:
+	var views: Array[Dictionary] = []
+	for worker_id in _sorted_worker_ids():
+		views.append(_workers[worker_id].duplicate(true))
+	return views
+
+
 func _register_worker_snapshot(worker: WorkerStateScript) -> void:
 	if worker == null:
 		return

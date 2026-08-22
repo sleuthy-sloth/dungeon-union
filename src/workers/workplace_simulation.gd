@@ -16,8 +16,14 @@ func _init(seed: int) -> void:
 
 
 static func create_fixture(seed: int) -> WorkplaceSimulation:
+	return create_from_worker_ids(seed, FIXTURE_WORKER_IDS)
+
+
+static func create_from_worker_ids(seed: int, worker_ids: Array[StringName]) -> WorkplaceSimulation:
 	var simulation := WorkplaceSimulation.new(seed)
-	for worker_id in FIXTURE_WORKER_IDS:
+	for worker_id in worker_ids:
+		if worker_id.is_empty() or simulation.worker_states.has(worker_id):
+			continue
 		simulation.worker_states[worker_id] = WorkerState.new(worker_id)
 	return simulation
 

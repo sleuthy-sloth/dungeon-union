@@ -18,6 +18,9 @@ var event_runtime: WorkplaceEventRuntimeScript
 
 func _ready() -> void:
     boot()
+    if has_node("WorkplaceView") and active_catalog != null:
+        $WorkplaceView.configure(self, active_catalog, event_seed)
+        change_mode(&"workplace")
 
 
 func boot() -> void:

@@ -45,6 +45,13 @@ func expire(deadline: int) -> void:
 	phase = &"expired"
 
 
+func resolve() -> bool:
+	if phase != &"documented":
+		return false
+	phase = &"resolved"
+	return true
+
+
 func snapshot() -> GrievanceState:
 	var copied_state := GrievanceState.new(id, issue, affected_workers)
 	copied_state.phase = phase

@@ -37,6 +37,11 @@ func advance_deadlines(tick: int) -> void:
 		state.advance_deadline(_current_tick)
 
 
+func resolve(grievance_id: StringName) -> bool:
+	var state := _state_for(grievance_id)
+	return state.resolve() if state != null else false
+
+
 func _state_for(grievance_id: StringName) -> GrievanceState:
 	if not _states.has(grievance_id):
 		return null

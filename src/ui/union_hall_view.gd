@@ -1,0 +1,171 @@
+class_name UnionHallView
+extends Control
+
+signal closed
+
+const COAL := Color("0b1114")
+const SLATE := Color("16242b")
+const PAPER := Color("e8d9b5")
+const BRASS := Color("d2a75c")
+const UNION_RED := Color("a54138")
+const SAFETY_TEAL := Color("79b7b0")
+
+const BRANCH_COPY: Dictionary[StringName, Dictionary] = {
+	&"steward_school": {"title": "STEWARD SCHOOL", "symbol": "✦", "copy": "Delegate routine listening and strengthen local leadership."},
+	&"legal_desk": {"title": "LEGAL DESK", "symbol": "§", "copy": "Preserve evidence and surface approaching deadlines."},
+	&"mutual_aid_kitchen": {"title": "MUTUAL-AID KITCHEN", "symbol": "♨", "copy": "Lower fatigue and keep workers steady through a crisis."},
+	&"print_shop": {"title": "PRINT SHOP", "symbol": "▤", "copy": "Build public support and answer the foreman's rumors."},
+	&"organizing_workshop": {"title": "ORGANIZING WORKSHOP", "symbol": "⚒", "copy": "Clarify participation forecasts and advanced actions."},
+}
+
+var _campaign: CampaignState
+var _buttons: Dictionary[StringName, Button] = {}
+var _points_label: Label
+var _display_font: SystemFont
+var _body_font: SystemFont
+var _data_font: SystemFont
+var _settings := AccessibilitySettings.new()
+
+
+func _ready() -> void:
+	_build_fonts()
+	_build_controls()
+	queue_redraw()
+
+
+func configure(campaign: CampaignState) -> void:
+	_campaign = campaign
+	_refresh()
+
+
+func set_accessibility(settings: AccessibilitySettings) -> void:
+	_settings = settings.normalized_copy()
+	scale = Vector2.ONE
+	var accessible_font := SystemFont.new()
+	accessible_font.font_names = PackedStringArray(["Atkinson Hyperlegible", "Arial", "Helvetica"])
+	for child in get_children():
+		if child is Control and child.has_meta("base_font_size"):
+			child.add_theme_font_size_override("font_size", maxi(10, int(round(float(child.get_meta("base_font_size")) * _settings.ui_scale))))
+			var base_font: Font = child.get_meta("base_font")
+			child.add_theme_font_override("font", accessible_font if _settings.dyslexia_friendly_font else base_font)
+	queue_redraw()
+
+
+func _draw() -> void:
+	draw_rect(Rect2(0, 0, 1440, 900), Color(COAL, 0.96))
+	# A compact isometric union hall under warm communal light.
+	var floor := PackedVector2Array([Vector2(470, 180), Vector2(1020, 455), Vector2(720, 605), Vector2(170, 330)])
+	draw_colored_polygon(floor, SLATE)
+	draw_polyline(_closed(floor), PAPER if _settings.high_contrast else BRASS, 4.0, true)
+	for step in 7:
+		var a := Vector2(470, 180).lerp(Vector2(170, 330), float(step) / 6.0)
+		var b := Vector2(1020, 455).lerp(Vector2(720, 605), float(step) / 6.0)
+		draw_line(a, b, Color(PAPER, 0.09), 2.0)
+	# Union-red thread binds the five branch stations into one organization.
+	var thread := PackedVector2Array([Vector2(250, 690), Vector2(475, 645), Vector2(720, 690), Vector2(965, 645), Vector2(1190, 690)])
+	draw_polyline(thread, UNION_RED, 7.0, true)
+	for point in thread:
+		draw_circle(point, 10.0, UNION_RED)
+		draw_arc(point, 14.0, 0, TAU, 24, PAPER, 2.0)
+	# Pamphlet heading band.
+	draw_colored_polygon(PackedVector2Array([Vector2(150, 76), Vector2(1110, 76), Vector2(1150, 116), Vector2(1110, 156), Vector2(150, 156)]), PAPER)
+	draw_line(Vector2(150, 159), Vector2(1110, 159), UNION_RED, 5.0)
+
+
+func _build_fonts() -> void:
+	_display_font = SystemFont.new()
+	_display_font.font_names = PackedStringArray(["Palatino", "Book Antiqua", "Times New Roman"])
+	_body_font = SystemFont.new()
+	_body_font.font_names = PackedStringArray(["Avenir Next", "Avenir", "Helvetica Neue", "Arial"])
+	_data_font = SystemFont.new()
+	_data_font.font_names = PackedStringArray(["Menlo", "Monaco", "Courier New"])
+
+
+func _build_controls() -> void:
+	var title := _label("LOCAL 666  /  UNION HALL", Vector2(184, 88), Vector2(660, 56), 29, _display_font, COAL)
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_points_label = _label("UPGRADE POINTS  05", Vector2(906, 96), Vector2(190, 35), 14, _data_font, COAL)
+	var close_button := _button("RETURN TO MINE  ×", Vector2(1190, 92), Vector2(196, 42))
+	close_button.pressed.connect(func() -> void:
+		visible = false
+		closed.emit()
+	)
+	var index := 0
+	for branch in BRANCH_COPY:
+		var copy: Dictionary = BRANCH_COPY[branch]
+		var x := 132 + index * 257
+		_label("%s  %s" % [copy.symbol, copy.title], Vector2(x, 660), Vector2(224, 32), 15, _display_font, PAPER)
+		_label(copy.copy, Vector2(x, 703), Vector2(224, 70), 12, _body_font, PAPER)
+		var button := _button("INSTALL  /  1 POINT", Vector2(x, 786), Vector2(224, 42))
+		button.pressed.connect(_on_upgrade_pressed.bind(branch))
+		_buttons[branch] = button
+		index += 1
+
+
+func _on_upgrade_pressed(branch: StringName) -> void:
+	if _campaign != null:
+		_campaign.apply_command(ApplyUpgradeCommand.new(branch, 1))
+	_refresh()
+
+
+func _refresh() -> void:
+	if _campaign == null or not is_node_ready():
+		return
+	var view := _campaign.read_view()
+	_points_label.text = "UPGRADE POINTS  %02d" % int(view.upgrade_points)
+	for branch in _buttons:
+		var purchased: bool = view.upgrades.has(StringName("%s_1" % branch))
+		var button: Button = _buttons[branch]
+		button.disabled = purchased or int(view.upgrade_points) == 0
+		button.text = "INSTALLED  ✓" if purchased else "INSTALL  /  1 POINT"
+
+
+func _label(text: String, position: Vector2, size: Vector2, font_size: int, font: Font, color: Color) -> Label:
+	var label := Label.new()
+	label.position = position
+	label.size = size
+	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_override("font", font)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.set_meta("base_font_size", font_size)
+	label.set_meta("base_font", font)
+	add_child(label)
+	return label
+
+
+func _button(text: String, position: Vector2, size: Vector2) -> Button:
+	var button := Button.new()
+	button.position = position
+	button.size = size
+	button.text = text
+	button.focus_mode = Control.FOCUS_ALL
+	button.add_theme_font_override("font", _data_font)
+	button.add_theme_font_size_override("font_size", 12)
+	button.set_meta("base_font_size", 12)
+	button.set_meta("base_font", _data_font)
+	button.add_theme_color_override("font_color", PAPER)
+	button.add_theme_color_override("font_focus_color", COAL)
+	button.add_theme_stylebox_override("normal", _stylebox(COAL.lightened(0.06), BRASS.darkened(0.35), 1))
+	button.add_theme_stylebox_override("hover", _stylebox(SLATE.lightened(0.13), BRASS, 2))
+	button.add_theme_stylebox_override("pressed", _stylebox(UNION_RED, PAPER, 2))
+	button.add_theme_stylebox_override("focus", _stylebox(SAFETY_TEAL, COAL, 3))
+	add_child(button)
+	return button
+
+
+func _stylebox(background: Color, border: Color, width: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.border_color = border
+	style.set_border_width_all(width)
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	return style
+
+
+func _closed(points: PackedVector2Array) -> PackedVector2Array:
+	var result := points.duplicate()
+	result.append(result[0])
+	return result
