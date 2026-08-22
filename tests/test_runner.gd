@@ -5,6 +5,7 @@ func _init() -> void:
     for script_path in [
         "res://tests/smoke/test_app_root.gd",
         "res://tests/content/test_content_validator.gd",
+        "res://tests/simulation/test_deterministic_shift.gd",
     ]:
         load(script_path).run(t)
     for failure in t.failures:
