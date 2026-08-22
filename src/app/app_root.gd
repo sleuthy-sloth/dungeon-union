@@ -58,6 +58,15 @@ func complete_event(event_id: StringName) -> bool:
         return false
     return event_runtime.complete_event(event_id)
 
+
+func event_progress_view() -> Dictionary:
+    return event_runtime.durable_snapshot() if event_runtime != null else {}
+
+
+func restore_event_progress(view: Dictionary) -> void:
+    if event_runtime != null:
+        event_runtime.restore_progress(view)
+
 func change_mode(next_mode: StringName) -> void:
     if next_mode == current_mode:
         return

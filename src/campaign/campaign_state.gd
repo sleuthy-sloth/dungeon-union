@@ -17,6 +17,16 @@ func _init(initial_upgrade_points: int = 5) -> void:
 	_upgrade_points = maxi(0, initial_upgrade_points)
 
 
+static func restore(view: Dictionary) -> CampaignState:
+	var upgrades: Array = view.get("upgrades", [])
+	var state := CampaignState.new(maxi(0, int(view.get("upgrade_points", 0))) + upgrades.size())
+	for upgrade_id in upgrades:
+		var text := String(upgrade_id)
+		if text.ends_with("_1"):
+			state.apply_command(ApplyUpgradeCommand.new(StringName(text.trim_suffix("_1")), 1))
+	return state
+
+
 func apply_command(command: ApplyUpgradeCommand) -> bool:
 	if command == null or command.tier != 1 or not BRANCHES.has(command.branch):
 		return false

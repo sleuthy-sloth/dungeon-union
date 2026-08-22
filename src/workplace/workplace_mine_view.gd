@@ -115,7 +115,7 @@ func _draw_incident_markers() -> void:
 		return
 	for index in _incident_views.size():
 		var incident: Dictionary = _incident_views[index]
-		_draw_incident_marker(_incident_position(StringName(incident.id), index), incident, String(incident.get("pattern", "!!!")).left(3), StringName(incident.id) == _selected_incident_id)
+		_draw_incident_marker(_incident_position(StringName(incident.get("definition_id", incident.id)), index), incident, String(incident.get("pattern", "!!!")).left(3), StringName(incident.id) == _selected_incident_id)
 
 
 func _draw_incident_marker(position: Vector2, incident: Dictionary, marker_text: String, selected: bool) -> void:

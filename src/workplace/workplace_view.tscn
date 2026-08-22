@@ -35,6 +35,15 @@ position = Vector2(715, 445)
 y_sort_enabled = true
 script = ExtResource("2_mine")
 
+[node name="MineInputSurface" type="Control" parent="."]
+layout_mode = 0
+offset_left = 330.0
+offset_top = 66.0
+offset_right = 1112.0
+offset_bottom = 842.0
+mouse_filter = 0
+mouse_force_pass_scroll_events = false
+
 [node name="WorkplaceHUD" parent="." instance=ExtResource("3_hud")]
 layout_mode = 1
 

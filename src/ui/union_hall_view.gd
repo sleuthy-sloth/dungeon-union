@@ -24,12 +24,16 @@ var _points_label: Label
 var _display_font: SystemFont
 var _body_font: SystemFont
 var _data_font: SystemFont
+var _accessible_font: SystemFont
 var _settings := AccessibilitySettings.new()
+var _scroll: ScrollContainer
+var _content: Control
 
 
 func _ready() -> void:
 	_build_fonts()
 	_build_controls()
+	_build_scroll_content()
 	queue_redraw()
 
 
@@ -41,14 +45,41 @@ func configure(campaign: CampaignState) -> void:
 func set_accessibility(settings: AccessibilitySettings) -> void:
 	_settings = settings.normalized_copy()
 	scale = Vector2.ONE
-	var accessible_font := SystemFont.new()
-	accessible_font.font_names = PackedStringArray(["Atkinson Hyperlegible", "Arial", "Helvetica"])
-	for child in get_children():
-		if child is Control and child.has_meta("base_font_size"):
-			child.add_theme_font_size_override("font_size", maxi(10, int(round(float(child.get_meta("base_font_size")) * _settings.ui_scale))))
+	if _content != null:
+		_content.scale = Vector2.ONE * _settings.ui_scale
+		_content.custom_minimum_size = Vector2(1440, 900) * _settings.ui_scale
+	for child in find_children("*", "Control", true, false):
+		if child.has_meta("base_font_size"):
+			child.add_theme_font_size_override("font_size", int(child.get_meta("base_font_size")))
 			var base_font: Font = child.get_meta("base_font")
-			child.add_theme_font_override("font", accessible_font if _settings.dyslexia_friendly_font else base_font)
+			child.add_theme_font_override("font", _accessible_font if _settings.dyslexia_friendly_font else base_font)
 	queue_redraw()
+
+
+func accessibility_layout_view() -> Dictionary:
+	var all_inside := _scroll != null and Rect2(Vector2.ZERO, Vector2(1440, 900)).encloses(_scroll.get_rect())
+	var no_intersections := true
+	var focus_outlines := true
+	var controls: Array[Control] = []
+	if _content != null:
+		for child in _content.get_children():
+			if child is Control and child.visible:
+				controls.append(child)
+				all_inside = all_inside and Rect2(Vector2.ZERO, Vector2(1440, 900)).encloses(child.get_rect())
+				if child is Button:
+					focus_outlines = focus_outlines and child.focus_mode == Control.FOCUS_ALL and child.has_theme_stylebox_override("focus")
+		for left_index in controls.size():
+			for right_index in range(left_index + 1, controls.size()):
+				no_intersections = no_intersections and not controls[left_index].get_rect().intersects(controls[right_index].get_rect())
+	return {
+		"all_inside_viewport": all_inside,
+		"no_intersections": no_intersections,
+		"focus_outlines": focus_outlines,
+		"scrollable_reflow": _content != null and _content.custom_minimum_size.x >= 1440.0 * _settings.ui_scale,
+		"high_contrast": _settings.high_contrast,
+		"reduced_motion": _settings.reduced_motion,
+		"dyslexia_friendly_font": _settings.dyslexia_friendly_font,
+	}
 
 
 func _draw() -> void:
@@ -79,6 +110,8 @@ func _build_fonts() -> void:
 	_body_font.font_names = PackedStringArray(["Avenir Next", "Avenir", "Helvetica Neue", "Arial"])
 	_data_font = SystemFont.new()
 	_data_font.font_names = PackedStringArray(["Menlo", "Monaco", "Courier New"])
+	_accessible_font = SystemFont.new()
+	_accessible_font.font_names = PackedStringArray(["Atkinson Hyperlegible", "Arial", "Helvetica"])
 
 
 func _build_controls() -> void:
@@ -100,6 +133,23 @@ func _build_controls() -> void:
 		button.pressed.connect(_on_upgrade_pressed.bind(branch))
 		_buttons[branch] = button
 		index += 1
+
+
+func _build_scroll_content() -> void:
+	var controls: Array[Control] = []
+	for child in get_children():
+		if child is Control:
+			controls.append(child)
+	_scroll = ScrollContainer.new()
+	_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_scroll.clip_contents = true
+	add_child(_scroll)
+	_content = Control.new()
+	_content.custom_minimum_size = Vector2(1440, 900)
+	_scroll.add_child(_content)
+	for control in controls:
+		remove_child(control)
+		_content.add_child(control)
 
 
 func _on_upgrade_pressed(branch: StringName) -> void:

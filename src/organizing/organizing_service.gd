@@ -36,9 +36,22 @@ func _init(
 	for worker in workers:
 		if worker is WorkerStateScript:
 			_register_worker_snapshot(worker as WorkerStateScript)
+		elif worker is Dictionary:
+			_register_worker_view(worker)
 	for grievance in grievance_states:
 		if grievance is GrievanceStateScript:
 			register_grievance(grievance as GrievanceStateScript)
+		elif grievance is Dictionary:
+			register_grievance(GrievanceState.from_dictionary(grievance))
+
+
+static func restore(worker_views: Array, grievance_views: Array, resources: Dictionary) -> OrganizingService:
+	return OrganizingService.new(worker_views, grievance_views, UnionResourcesScript.new(
+		int(resources.get("solidarity", 0)),
+		int(resources.get("treasury", 0)),
+		int(resources.get("public_support", 0)),
+		int(resources.get("organizer_capacity", 1))
+	))
 
 
 static func fixture_with_workers(
@@ -77,12 +90,23 @@ func forecast(proposal: ActionProposalScript) -> ParticipationForecastScript:
 
 
 func execute(proposal: ActionProposalScript) -> Dictionary:
+	return execute_atomically(proposal, Callable())
+
+
+func execute_atomically(proposal: ActionProposalScript, transition: Callable) -> Dictionary:
 	var action_forecast := forecast(proposal)
 	if not action_forecast.can_execute:
 		return {
 			"executed": false,
 			"action": proposal.action if proposal != null else &"",
 			"blocker": action_forecast.blocker,
+			"ready_workers": action_forecast.ready_workers.duplicate(),
+		}
+	if transition.is_valid() and not bool(transition.call()):
+		return {
+			"executed": false,
+			"action": proposal.action,
+			"blocker": "grievance transition was rejected",
 			"ready_workers": action_forecast.ready_workers.duplicate(),
 		}
 	for kind in RESOURCE_SPEND_ORDER:
@@ -107,6 +131,13 @@ func worker_views() -> Array[Dictionary]:
 	return views
 
 
+func synchronize_worker_views(views: Array) -> void:
+	_workers.clear()
+	for view in views:
+		if view is Dictionary:
+			_register_worker_view(view)
+
+
 func _register_worker_snapshot(worker: WorkerStateScript) -> void:
 	if worker == null:
 		return
@@ -114,6 +145,12 @@ func _register_worker_snapshot(worker: WorkerStateScript) -> void:
 	if state.id.is_empty():
 		return
 	_workers[state.id] = state.duplicate(true)
+
+
+func _register_worker_view(state: Dictionary) -> void:
+	var worker_id := StringName(state.get("id", &""))
+	if not worker_id.is_empty():
+		_workers[worker_id] = state.duplicate(true)
 
 
 func _participation_for(threshold: int) -> ParticipationForecastScript:

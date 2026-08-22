@@ -54,6 +54,8 @@ func eligible_events(tick: int) -> Array[EventDefinitionScript]:
 	current_snapshot["tick"] = tick
 	var matches: Array[EventDefinitionScript] = []
 	for event in _event_engine.eligible(current_snapshot):
+		if _active_event_ids.has(event.id):
+			continue
 		if event.major and not _active_major_event.is_empty():
 			continue
 		if event.major and tick - _last_major_tick < MAJOR_EVENT_GAP_TICKS:
@@ -90,6 +92,33 @@ func complete_event(event_id: StringName) -> bool:
 	if _active_major_event == event_id:
 		_active_major_event = &""
 	return true
+
+
+func durable_snapshot() -> Dictionary:
+	var active_ids: Array[StringName] = _active_event_ids.keys()
+	active_ids.sort_custom(func(left: StringName, right: StringName) -> bool: return String(left) < String(right))
+	return {
+		"last_major_tick": _last_major_tick,
+		"family_last_workday": _family_last_workday.duplicate(true),
+		"current_workday": _current_workday,
+		"active_major_event": _active_major_event,
+		"active_event_ids": active_ids,
+		"random_streams": _random_streams.durable_snapshot(),
+	}
+
+
+func restore_progress(view: Dictionary) -> void:
+	_last_major_tick = int(view.get("last_major_tick", -MAJOR_EVENT_GAP_TICKS))
+	_family_last_workday.clear()
+	for family in view.get("family_last_workday", {}):
+		_family_last_workday[StringName(family)] = maxi(1, int(view.family_last_workday[family]))
+	_current_workday = maxi(1, int(view.get("current_workday", 1)))
+	_active_major_event = StringName(view.get("active_major_event", &""))
+	_active_event_ids.clear()
+	for event_id in view.get("active_event_ids", []):
+		_active_event_ids[StringName(event_id)] = true
+	if view.has("random_streams"):
+		_random_streams = RandomStreamsScript.restore(_random_streams.master_seed, view.random_streams)
 
 
 func _family_was_recent(family: StringName) -> bool:

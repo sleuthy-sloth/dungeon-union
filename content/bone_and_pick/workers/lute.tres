@@ -10,3 +10,6 @@ species = &"bugbear"
 job_id = &"hauler"
 traits = Array[StringName]([&"generous"])
 event_role_tags = Array[StringName]([&"hauler", &"mutual_aid_steward"])
+initial_trust = 79
+initial_action_willingness = 76
+bargaining_priorities = {&"safety": 2, &"schedule": 3, &"tool_maintenance": 1}

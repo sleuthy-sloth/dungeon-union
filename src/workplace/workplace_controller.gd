@@ -3,6 +3,7 @@ extends Control
 
 const FixedTickEventCommandScript = preload("res://src/events/fixed_tick_event_command.gd")
 const WorkplaceCommandsScript = preload("res://src/workplace/workplace_commands.gd")
+const NegotiationComposerScript = preload("res://src/negotiation/bone_and_pick_negotiation_composer.gd")
 
 const ACTIVE_ISSUES: Array[StringName] = [
 	&"cave_in_prevention", &"lantern_fume_exposure", &"maintenance_pay",
@@ -44,6 +45,9 @@ func _ready() -> void:
 		$UnionHallView.configure(_campaign)
 		$UnionHallView.set_accessibility(accessibility_settings)
 		$UnionHallView.visible = false
+	if has_node("MineInputSurface"):
+		$MineInputSurface.gui_input.connect(_on_mine_gui_input)
+	_ensure_input_actions()
 	_apply_camera_transform()
 
 
@@ -54,11 +58,14 @@ func configure(root: AppRoot, catalog: ContentCatalog, seed: int = 0) -> void:
 	_catalog = catalog
 	if _catalog == null:
 		return
-	var ids: Array[StringName] = []
+	var definitions: Array[WorkerDefinition] = []
 	if not _catalog.workplace_items.is_empty():
-		ids = _catalog.workplace_items[0].worker_ids.duplicate()
-	_simulation = WorkplaceSimulation.create_from_worker_ids(seed, ids)
-	_create_organizing_service(ids)
+		for worker_id in _catalog.workplace_items[0].worker_ids:
+			var definition := _worker_definition(worker_id)
+			if definition != null:
+				definitions.append(definition)
+	_simulation = WorkplaceSimulation.create_from_definitions(seed, definitions)
+	_create_organizing_service()
 	_configured = true
 	if has_node("MineViewport"):
 		$MineViewport.configure(_catalog)
@@ -77,10 +84,12 @@ func advance_frame(real_delta: float) -> void:
 	var processed_ticks := 0
 	for logical_tick in tick_count:
 		_simulation.apply_tick()
+		_organizing.synchronize_worker_views(_simulation.snapshot().workers)
 		processed_ticks += 1
 		_tick += 1
 		_workday = int(_tick / TICKS_PER_WORKDAY) + 1
 		_grievances.advance_deadlines(_tick)
+		_complete_terminal_event_runtimes()
 		# Integration invariant: every logical simulation tick gets exactly one Task 6 command.
 		var snapshot := _simulation.snapshot()
 		snapshot["active_issues"] = ACTIVE_ISSUES.duplicate()
@@ -99,6 +108,7 @@ func advance_frame(real_delta: float) -> void:
 func apply_command(command: Variant) -> Dictionary:
 	if command is WorkplaceCommandsScript.SelectWorkerCommand:
 		_selected_worker_id = command.worker_id if _worker_exists(command.worker_id) else &""
+		_selected_incident_id = &""
 	elif command is WorkplaceCommandsScript.InspectIncidentCommand:
 		_selected_incident_id = command.incident_id if _incident_exists(command.incident_id) else &""
 	elif command is WorkplaceCommandsScript.PauseCommand:
@@ -126,14 +136,19 @@ func read_view() -> Dictionary:
 				worker["species"] = definition.species
 				worker["job_id"] = definition.job_id
 			workers.append(worker)
-	var incident_views: Array[Dictionary] = []
+	var active_incidents: Array[Dictionary] = []
+	var incident_history: Array[Dictionary] = []
 	for incident in _incidents:
 		var copy := incident.duplicate(true)
 		var grievance := _grievances.get_state(StringName(incident.id))
 		if grievance != null:
 			copy["grievance_phase"] = grievance.phase
 			copy["evidence_score"] = grievance.evidence_score
-		incident_views.append(copy)
+			copy["resolved_action"] = grievance.resolved_action
+		if grievance != null and grievance.phase in GrievanceState.TERMINAL_PHASES:
+			incident_history.append(copy)
+		else:
+			active_incidents.append(copy)
 	var resources := _organizing.resources_snapshot() if _organizing != null else {}
 	return {
 		"tick": _tick,
@@ -141,7 +156,9 @@ func read_view() -> Dictionary:
 		"paused": _clock.paused,
 		"speed": int(_clock.speed),
 		"workers": workers,
-		"incidents": incident_views,
+		"incidents": active_incidents,
+		"active_incidents": active_incidents,
+		"incident_history": incident_history,
 		"selected_worker_id": _selected_worker_id,
 		"selected_incident_id": _selected_incident_id,
 		"resources": resources,
@@ -158,26 +175,29 @@ func _process(delta: float) -> void:
 	advance_frame(delta)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
-			KEY_SPACE:
-				apply_command(WorkplaceCommandsScript.PauseCommand.new(not _clock.paused))
-			KEY_1:
-				apply_command(WorkplaceCommandsScript.SetSpeedCommand.new(1))
-			KEY_2:
-				apply_command(WorkplaceCommandsScript.SetSpeedCommand.new(2))
-			KEY_4:
-				apply_command(WorkplaceCommandsScript.SetSpeedCommand.new(4))
-			KEY_TAB:
-				_cycle_incident()
-			KEY_U:
-				_open_union_hall()
+func _shortcut_input(event: InputEvent) -> void:
+	if event.is_echo() or not event.is_pressed():
+		return
+	if event.is_action_pressed(&"workplace_pause"):
+		apply_command(WorkplaceCommandsScript.PauseCommand.new(not _clock.paused))
+	elif event.is_action_pressed(&"workplace_speed_1"):
+		apply_command(WorkplaceCommandsScript.SetSpeedCommand.new(1))
+	elif event.is_action_pressed(&"workplace_speed_2"):
+		apply_command(WorkplaceCommandsScript.SetSpeedCommand.new(2))
+	elif event.is_action_pressed(&"workplace_speed_4"):
+		apply_command(WorkplaceCommandsScript.SetSpeedCommand.new(4))
+	elif event.is_action_pressed(&"workplace_cycle_incident"):
+		_cycle_incident()
+	elif event.is_action_pressed(&"workplace_union_hall"):
+		_open_union_hall()
+
+
+func _on_mine_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
 			if not event.pressed:
 				_dragging = false
-			elif event.button_index == MOUSE_BUTTON_MIDDLE or Rect2(330, 66, 782, 776).has_point(event.position):
+			else:
 				_dragging = true
 		elif event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 			var direction := 1.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0
@@ -198,22 +218,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		_apply_camera_transform()
 
 
-func _create_organizing_service(worker_ids: Array[StringName]) -> void:
-	var workers: Array[WorkerState] = []
-	for worker_id in worker_ids:
-		var worker := WorkerState.new(worker_id)
-		worker.trust = 60
-		worker.action_willingness = 65
-		workers.append(worker)
-	_organizing = OrganizingService.new(workers, [], UnionResources.new(40, 0, 20, 2))
+# Compatibility entry point for non-scene unit callers; the playable scene routes
+# primary pointer input through MineInputSurface.
+func _unhandled_input(event: InputEvent) -> void:
+	if is_inside_tree():
+		return
+	_on_mine_gui_input(event)
+
+
+func _create_organizing_service() -> void:
+	_organizing = OrganizingService.new(_simulation.snapshot().workers, [], UnionResources.new(40, 5, 2, 2))
 
 
 func _record_started_event(event: EventDefinition) -> void:
 	var affected := _affected_workers_for(event)
-	var incident := IncidentRecord.new(event.id, event.issue, affected, _tick)
+	var occurrence_id := StringName("%s@%08d" % [event.id, _tick])
+	var incident := IncidentRecord.new(occurrence_id, event.issue, affected, _tick)
 	_grievances.report(incident)
 	_incidents.append({
-		"id": event.id,
+		"id": occurrence_id,
+		"occurrence_id": occurrence_id,
+		"runtime_id": event.id,
+		"definition_id": event.id,
 		"issue": event.issue,
 		"title": _event_title(event.id),
 		"description": _event_description(event.id),
@@ -221,7 +247,7 @@ func _record_started_event(event: EventDefinition) -> void:
 		"major": event.major,
 		"pattern": _event_pattern(event.id),
 	})
-	_selected_incident_id = event.id
+	_selected_incident_id = occurrence_id
 	if not affected.is_empty():
 		_selected_worker_id = affected[0]
 
@@ -231,7 +257,9 @@ func _execute_action(action: StringName, grievance_id: StringName) -> Dictionary
 	if grievance == null:
 		return {"executed": false, "blocker": "Select an active incident first."}
 	if action == &"document":
-		if grievance.phase in [&"documented", &"resolved"]:
+		if grievance.phase in GrievanceState.TERMINAL_PHASES:
+			return {"executed": false, "action": action, "blocker": "This grievance action is already complete."}
+		if grievance.phase == &"documented":
 			return {"executed": false, "action": action, "blocker": "Testimony is already documented."}
 		_grievances.add_evidence(grievance_id, EvidenceRecord.new(&"worker_testimony", 2, _tick + 240))
 		grievance = _grievances.get_state(grievance_id)
@@ -239,29 +267,25 @@ func _execute_action(action: StringName, grievance_id: StringName) -> Dictionary
 		return {"executed": true, "action": action, "summary": "Testimony documented. Compare the four action forecasts."}
 	if grievance.phase in GrievanceState.TERMINAL_PHASES:
 		return {"executed": false, "blocker": "This grievance action is already complete."}
-	var result := _organizing.execute(ActionProposal.new(action, grievance_id, 50, false))
+	var result := _organizing.execute_atomically(
+		ActionProposal.new(action, grievance_id, 50, false),
+		func() -> bool: return _grievances.transition_action(grievance_id, action)
+	)
 	result["summary"] = "%s completed with %d ready workers." % [String(action).replace("_", " ").capitalize(), result.ready_workers.size()] if result.executed else result.blocker
 	if result.executed:
-		_grievances.resolve(grievance_id)
-		_app_root.complete_event(grievance_id)
+		var incident: Variant = _incident_for(grievance_id)
+		if incident != null:
+			_app_root.complete_event(StringName(incident.runtime_id))
 	return result
 
 
 func _enter_negotiation(strategy: StringName) -> Dictionary:
 	if strategy != &"safety_first":
 		return {"ratified": false, "summary": "That bargaining strategy is not available in this slice."}
-	var resources := _organizing.resources_snapshot()
-	var worker_views := _organizing.worker_views()
-	var participation := 0
-	if not worker_views.is_empty():
-		participation = int(round(100.0 * float(_organizing.forecast(ActionProposal.new(&"informal", &"", 50)).ready_count) / float(worker_views.size())))
-	var state := NegotiationState.new(
-		_negotiation_evidence(),
-		int(resources.solidarity),
-		participation,
-		int(resources.treasury),
-		int(resources.public_support),
-		_worker_priorities()
+	var state := NegotiationComposerScript.new().compose(
+		_simulation.snapshot().workers,
+		_grievances.snapshot(),
+		_organizing.resources_snapshot()
 	)
 	var resolver := NegotiationResolver.bone_and_pick(state)
 	var package := {
@@ -281,32 +305,6 @@ func _enter_negotiation(strategy: StringName) -> Dictionary:
 		String(result.explanations.get(example_worker, "No vote explanation available.")),
 	]
 	return result
-
-
-func _worker_priorities() -> Dictionary:
-	var result := {}
-	for worker in _organizing.worker_views():
-		result[StringName(worker.id)] = {"trust": int(worker.trust), "priorities": {&"safety": 3, &"schedule": 1, &"tool_maintenance": 1}}
-	return result
-
-
-func _negotiation_evidence() -> Dictionary:
-	var safety_evidence := 0
-	var tool_evidence := 0
-	for incident in _incidents:
-		var grievance := _grievances.get_state(StringName(incident.id))
-		if grievance == null or grievance.phase not in [&"documented", &"resolved"]:
-			continue
-		if grievance.issue in [&"cave_in_prevention", &"lantern_fume_exposure", &"unsafe_fumes"]:
-			safety_evidence += grievance.evidence_score
-		elif grievance.issue == &"maintenance_pay":
-			tool_evidence += grievance.evidence_score
-	var evidence := {}
-	if safety_evidence > 0:
-		evidence[&"fume_testimony"] = safety_evidence
-	if tool_evidence > 0:
-		evidence[&"tool_ledger"] = tool_evidence
-	return evidence
 
 
 func _action_forecasts() -> Dictionary:
@@ -331,15 +329,16 @@ func _action_forecasts() -> Dictionary:
 
 
 func _cycle_incident() -> void:
-	if _incidents.is_empty():
+	var active: Array = read_view().active_incidents
+	if active.is_empty():
 		return
 	var index := -1
-	for item_index in _incidents.size():
-		if StringName(_incidents[item_index].id) == _selected_incident_id:
+	for item_index in active.size():
+		if StringName(active[item_index].id) == _selected_incident_id:
 			index = item_index
 			break
-	index = (index + 1) % _incidents.size()
-	apply_command(WorkplaceCommandsScript.InspectIncidentCommand.new(StringName(_incidents[index].id)))
+	index = (index + 1) % active.size()
+	apply_command(WorkplaceCommandsScript.InspectIncidentCommand.new(StringName(active[index].id)))
 
 
 func _open_union_hall() -> void:
@@ -376,6 +375,42 @@ func _incident_exists(incident_id: StringName) -> bool:
 		if StringName(incident.id) == incident_id:
 			return true
 	return false
+
+
+func _incident_for(incident_id: StringName) -> Variant:
+	for incident in _incidents:
+		if StringName(incident.id) == incident_id:
+			return incident
+	return null
+
+
+func _complete_terminal_event_runtimes() -> void:
+	for incident in _incidents:
+		var grievance := _grievances.get_state(StringName(incident.id))
+		if grievance != null and grievance.phase in GrievanceState.TERMINAL_PHASES:
+			_app_root.complete_event(StringName(incident.runtime_id))
+
+
+func _ensure_input_actions() -> void:
+	var bindings := {
+		&"workplace_pause": KEY_SPACE,
+		&"workplace_speed_1": KEY_1,
+		&"workplace_speed_2": KEY_2,
+		&"workplace_speed_4": KEY_4,
+		&"workplace_cycle_incident": KEY_TAB,
+		&"workplace_union_hall": KEY_U,
+	}
+	for action in bindings:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action)
+		var already_bound := false
+		for existing in InputMap.action_get_events(action):
+			if existing is InputEventKey and existing.keycode == bindings[action]:
+				already_bound = true
+		if not already_bound:
+			var key := InputEventKey.new()
+			key.keycode = bindings[action]
+			InputMap.action_add_event(action, key)
 
 
 func _worker_definition(worker_id: StringName) -> WorkerDefinition:

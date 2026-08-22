@@ -16,16 +16,21 @@ const SAFETY_TEAL := Color("79b7b0")
 var _display_font: SystemFont
 var _body_font: SystemFont
 var _data_font: SystemFont
+var _accessible_font: SystemFont
 var _worker_buttons: Array[Button] = []
+var _incident_buttons: Array[Button] = []
 var _labels: Dictionary[StringName, Label] = {}
 var _view: Dictionary = {}
 var _settings := AccessibilitySettings.new()
+var _scroll_regions: Array[ScrollContainer] = []
+var _scaled_contents: Array[Control] = []
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_PASS
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_fonts()
 	_build_interface()
+	_build_scroll_regions()
 	queue_redraw()
 
 
@@ -46,10 +51,16 @@ func update_view(view: Dictionary) -> void:
 		button.set_meta("worker_id", StringName(worker.id))
 		button.text = "%s  %-19s %3d" % [_species_symbol(StringName(worker.get("species", &""))), String(worker.get("display_name", worker.id)), int(worker.get("fatigue", 0))]
 		button.button_pressed = StringName(worker.id) == StringName(view.get("selected_worker_id", &""))
-	var grievance_lines: Array[String] = []
-	for incident in view.get("incidents", []):
-		grievance_lines.append("⚠ %-17s  %s" % [String(incident.get("title", incident.id)).left(17), String(incident.get("grievance_phase", "reported")).to_upper()])
-	_labels.grievances_list.text = "NO OPEN CASES" if grievance_lines.is_empty() else "\n".join(grievance_lines.slice(0, 4))
+	var incidents: Array = view.get("active_incidents", view.get("incidents", []))
+	_labels.grievances_list.visible = incidents.is_empty()
+	for index in _incident_buttons.size():
+		var incident_button := _incident_buttons[index]
+		incident_button.visible = index < incidents.size()
+		if index < incidents.size():
+			var incident: Dictionary = incidents[index]
+			incident_button.set_meta("incident_id", StringName(incident.id))
+			incident_button.text = "⚠ %-15s %s" % [String(incident.get("title", incident.id)).left(15), String(incident.get("grievance_phase", "reported")).to_upper()]
+			incident_button.button_pressed = StringName(incident.id) == StringName(view.get("selected_incident_id", &""))
 	_update_case_file(view)
 	queue_redraw()
 
@@ -57,14 +68,57 @@ func update_view(view: Dictionary) -> void:
 func set_accessibility(settings: AccessibilitySettings) -> void:
 	_settings = settings.normalized_copy()
 	scale = Vector2.ONE
-	var accessible_font := SystemFont.new()
-	accessible_font.font_names = PackedStringArray(["Atkinson Hyperlegible", "Arial", "Helvetica"])
-	for child in get_children():
-		if child is Control and child.has_meta("base_font_size"):
-			child.add_theme_font_size_override("font_size", maxi(10, int(round(float(child.get_meta("base_font_size")) * _settings.ui_scale))))
+	for content in _scaled_contents:
+		content.scale = Vector2.ONE * _settings.ui_scale
+		content.custom_minimum_size = content.get_meta("base_size") * _settings.ui_scale
+	for child in find_children("*", "Control", true, false):
+		if child.has_meta("base_font_size"):
+			child.add_theme_font_size_override("font_size", int(child.get_meta("base_font_size")))
 			var base_font: Font = child.get_meta("base_font")
-			child.add_theme_font_override("font", accessible_font if _settings.dyslexia_friendly_font else base_font)
+			child.add_theme_font_override("font", _accessible_font if _settings.dyslexia_friendly_font else base_font)
 	queue_redraw()
+
+
+func worker_button(worker_id: StringName) -> Button:
+	for button in _worker_buttons:
+		if StringName(button.get_meta("worker_id", &"")) == worker_id:
+			return button
+	return null
+
+
+func incident_button(incident_id: StringName) -> Button:
+	for button in _incident_buttons:
+		if StringName(button.get_meta("incident_id", &"")) == incident_id:
+			return button
+	return null
+
+
+func context_text() -> String:
+	return "%s\n%s" % [_labels.case_title.text, _labels.case_body.text]
+
+
+func accessibility_layout_view() -> Dictionary:
+	var inside := true
+	for region in _scroll_regions:
+		inside = inside and Rect2(Vector2.ZERO, Vector2(1440, 900)).encloses(region.get_rect())
+	var non_intersecting := true
+	for left_index in _scroll_regions.size():
+		for right_index in range(left_index + 1, _scroll_regions.size()):
+			non_intersecting = non_intersecting and not _scroll_regions[left_index].get_rect().intersects(_scroll_regions[right_index].get_rect())
+	for content in _scaled_contents:
+		var visible_controls: Array[Control] = []
+		var base_size: Vector2 = content.get_meta("base_size")
+		for child in content.get_children():
+			if child is Control and child.visible:
+				visible_controls.append(child)
+				inside = inside and Rect2(Vector2.ZERO, base_size).encloses(child.get_rect())
+		for left_index in visible_controls.size():
+			for right_index in range(left_index + 1, visible_controls.size()):
+				non_intersecting = non_intersecting and not visible_controls[left_index].get_rect().intersects(visible_controls[right_index].get_rect())
+	var outlined := true
+	for button in find_children("*", "Button", true, false):
+		outlined = outlined and button.focus_mode == Control.FOCUS_ALL and button.has_theme_stylebox_override("focus")
+	return {"all_inside_viewport": inside, "no_intersections": non_intersecting, "focus_outlines": outlined}
 
 
 func _draw() -> void:
@@ -100,16 +154,18 @@ func _build_fonts() -> void:
 	_body_font.font_names = PackedStringArray(["Avenir Next", "Avenir", "Helvetica Neue", "Arial"])
 	_data_font = SystemFont.new()
 	_data_font.font_names = PackedStringArray(["Menlo", "Monaco", "Courier New"])
+	_accessible_font = SystemFont.new()
+	_accessible_font.font_names = PackedStringArray(["Atkinson Hyperlegible", "Arial", "Helvetica"])
 
 
 func _build_interface() -> void:
 	_labels.time = _label("DAY 01  ·  PAUSED  ·  TICK 0000", Vector2(24, 17), Vector2(410, 36), 16, _data_font, PAPER)
 	_labels.resources = _label("TREASURY  10     SOLIDARITY  60%     PRESSURE  24%", Vector2(465, 17), Vector2(480, 36), 16, _data_font, PAPER)
 	_label("BONE & PICK / SHIFT DOCKET", Vector2(36, 98), Vector2(274, 38), 19, _display_font, COAL)
-	_label("WORKERS                                      FAT", Vector2(37, 137), Vector2(270, 22), 11, _data_font, COAL)
+	_label("WORKERS                                      FAT", Vector2(37, 148), Vector2(270, 22), 11, _data_font, COAL)
 	for index in 12:
 		var button := Button.new()
-		button.position = Vector2(34, 164 + index * 39)
+		button.position = Vector2(34, 183 + index * 39)
 		button.size = Vector2(278, 35)
 		button.toggle_mode = true
 		button.focus_mode = Control.FOCUS_ALL
@@ -129,12 +185,23 @@ func _build_interface() -> void:
 		add_child(button)
 		_worker_buttons.append(button)
 	_label("OPEN GRIEVANCES", Vector2(37, 651), Vector2(270, 22), 11, _data_font, UNION_RED)
-	_labels.grievances_list = _label("NO OPEN CASES", Vector2(37, 678), Vector2(270, 134), 11, _data_font, COAL)
+	_labels.grievances_list = _label("NO OPEN CASES", Vector2(37, 686), Vector2(270, 126), 11, _data_font, COAL)
+	for index in 4:
+		var incident_button := _button("", Vector2(34, 686 + index * 33), Vector2(278, 30))
+		incident_button.toggle_mode = true
+		incident_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		incident_button.add_theme_color_override("font_color", COAL)
+		incident_button.add_theme_color_override("font_focus_color", COAL)
+		incident_button.add_theme_stylebox_override("normal", _stylebox(Color(PAPER, 0.0), Color(COAL, 0.0), 0))
+		incident_button.add_theme_stylebox_override("hover", _stylebox(Color(BRASS, 0.22), BRASS.darkened(0.3), 1))
+		incident_button.visible = false
+		incident_button.pressed.connect(_on_incident_pressed.bind(incident_button))
+		_incident_buttons.append(incident_button)
 
 	_label("ACTIVE CASE FILE", Vector2(1132, 100), Vector2(250, 35), 19, _display_font, PAPER)
 	_labels.case_title = _label("NO INCIDENT SELECTED", Vector2(1132, 153), Vector2(245, 54), 17, _display_font, BRASS)
 	_labels.case_body = _label("Tab cycles active incidents.\nEvery alarm also appears here in writing.", Vector2(1132, 220), Vector2(238, 118), 14, _body_font, PAPER)
-	_labels.grievance = _label("GRIEVANCE  —\nEVIDENCE   —", Vector2(1132, 350), Vector2(238, 70), 13, _data_font, SAFETY_TEAL)
+	_labels.grievance = _label("GRIEVANCE  —\nEVIDENCE   —", Vector2(1132, 350), Vector2(238, 44), 13, _data_font, SAFETY_TEAL)
 	_labels.forecast = _label("DOCUMENT A CASE TO FORECAST", Vector2(1132, 401), Vector2(252, 72), 10, _data_font, PAPER)
 	_labels.action = _label("", Vector2(1132, 638), Vector2(238, 112), 11, _body_font, PAPER)
 	var document := _button("DOCUMENT TESTIMONY", Vector2(1132, 474), Vector2(238, 34))
@@ -149,7 +216,7 @@ func _build_interface() -> void:
 	var hall := _button("UNION HALL  ⌂", Vector2(1132, 758), Vector2(238, 42))
 	hall.pressed.connect(func() -> void: union_hall_requested.emit())
 
-	_label("TIME", Vector2(960, 9), Vector2(50, 16), 10, _data_font, BRASS)
+	_label("TIME", Vector2(960, 4), Vector2(50, 16), 10, _data_font, BRASS)
 	for item in [["Ⅱ", true, 0], ["1×", false, 1], ["2×", false, 2], ["4×", false, 4]]:
 		var speed_button := _button(item[0], Vector2(956 + int(item[2] if item[2] > 0 else 0) * 50, 27), Vector2(45, 30))
 		if item[1]:
@@ -169,10 +236,16 @@ func _update_case_file(view: Dictionary) -> void:
 			selected = incident
 			break
 	if selected.is_empty() and not view.get("incidents", []).is_empty():
-		selected = view.incidents[0]
+		if selected_id != &"":
+			selected = view.incidents[0]
 	if selected.is_empty():
-		_labels.case_title.text = "NO INCIDENT SELECTED"
-		_labels.case_body.text = "Tab cycles active incidents.\nEvery alarm also appears here in writing."
+		var worker := _selected_worker(view)
+		if worker.is_empty():
+			_labels.case_title.text = "NO INCIDENT SELECTED"
+			_labels.case_body.text = "Tab cycles active incidents.\nEvery alarm also appears here in writing."
+		else:
+			_labels.case_title.text = String(worker.get("display_name", worker.id))
+			_labels.case_body.text = "%s  /  %s\nFATIGUE  %d\nTRUST  %d\nWILLING  %d\nPRIORITIES  %s" % [String(worker.get("species", &"worker")).capitalize(), String(worker.get("job_id", &"worker")).replace("_", " ").capitalize(), int(worker.get("fatigue", 0)), int(worker.get("trust", 0)), int(worker.get("action_willingness", 0)), _priority_copy(worker.get("bargaining_priorities", {}))]
 		_labels.grievance.text = "GRIEVANCE  —\nEVIDENCE   —"
 	else:
 		_labels.case_title.text = "⚠  %s" % String(selected.get("title", selected.id)).to_upper()
@@ -190,6 +263,55 @@ func _update_case_file(view: Dictionary) -> void:
 
 func _on_worker_pressed(button: Button) -> void:
 	command_requested.emit(WorkplaceCommandsScript.SelectWorkerCommand.new(StringName(button.get_meta("worker_id", &""))))
+
+
+func _on_incident_pressed(button: Button) -> void:
+	command_requested.emit(WorkplaceCommandsScript.InspectIncidentCommand.new(StringName(button.get_meta("incident_id", &""))))
+
+
+func _selected_worker(view: Dictionary) -> Dictionary:
+	var selected_id := StringName(view.get("selected_worker_id", &""))
+	for worker in view.get("workers", []):
+		if StringName(worker.id) == selected_id:
+			return worker
+	return {}
+
+
+func _priority_copy(priorities: Dictionary) -> String:
+	var parts: Array[String] = []
+	for issue in priorities:
+		parts.append("%s %d" % [String(issue).replace("_", " "), int(priorities[issue])])
+	return ", ".join(parts)
+
+
+func _build_scroll_regions() -> void:
+	var controls: Array[Control] = []
+	for child in get_children():
+		if child is Control:
+			controls.append(child)
+	_create_scroll_region(Rect2(0, 0, 1440, 66), Vector2(1440, 66), controls.filter(func(control: Control) -> bool: return control.position.y < 66.0))
+	_create_scroll_region(Rect2(18, 84, 310, 758), Vector2(310, 758), controls.filter(func(control: Control) -> bool: return control.position.x < 330.0 and control.position.y >= 66.0))
+	_create_scroll_region(Rect2(1112, 84, 306, 758), Vector2(306, 758), controls.filter(func(control: Control) -> bool: return control.position.x >= 1112.0))
+
+
+func _create_scroll_region(rect: Rect2, base_size: Vector2, controls: Array) -> void:
+	var scroll := ScrollContainer.new()
+	scroll.position = rect.position
+	scroll.size = rect.size
+	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	scroll.clip_contents = true
+	add_child(scroll)
+	var content := Control.new()
+	content.custom_minimum_size = base_size
+	content.set_meta("base_size", base_size)
+	scroll.add_child(content)
+	for control in controls:
+		var global_position: Vector2 = control.position
+		remove_child(control)
+		content.add_child(control)
+		control.position = global_position - rect.position
+	_scroll_regions.append(scroll)
+	_scaled_contents.append(content)
 
 
 func _request_action(action: StringName) -> void:

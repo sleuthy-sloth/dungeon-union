@@ -10,3 +10,6 @@ species = &"goblin"
 job_id = &"miner"
 traits = Array[StringName]([&"stubborn"])
 event_role_tags = Array[StringName]([&"miner"])
+initial_trust = 52
+initial_action_willingness = 54
+bargaining_priorities = {&"safety": 3, &"schedule": 1, &"tool_maintenance": 1}

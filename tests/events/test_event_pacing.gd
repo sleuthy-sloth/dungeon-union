@@ -28,6 +28,8 @@ static func _event_families_wait_two_workdays_before_repeating_for_minor_events(
 	var director := WorkplaceDirector.new([minor], 42)
 	director.set_workday(1)
 	t.equal(director.choose_and_start(0), minor, "minor event starts and records its family")
+	t.equal(director.eligible_events(1000), [], "an unresolved minor occurrence cannot duplicate its active definition")
+	t.check(director.complete_event(minor.id), "minor occurrence completes through the runtime lifecycle")
 	director.set_workday(2)
 	var day_two := director.eligible_events(1000)
 	t.check(not _has_family(day_two, &"spontaneous_mutual_aid"), "a minor family cannot repeat on the next workday")

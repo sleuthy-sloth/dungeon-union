@@ -2,7 +2,21 @@ class_name GrievanceService
 extends RefCounted
 
 var _states: Dictionary[StringName, GrievanceState] = {}
+var _order: Array[StringName] = []
 var _current_tick := 0
+
+
+static func restore(states: Array, current_tick: int = 0) -> GrievanceService:
+	var service := GrievanceService.new()
+	service._current_tick = maxi(0, current_tick)
+	for raw_state in states:
+		if not raw_state is Dictionary:
+			continue
+		var state := GrievanceState.from_dictionary(raw_state)
+		if not state.id.is_empty():
+			service._states[state.id] = state
+			service._order.append(state.id)
+	return service
 
 
 func report(incident: IncidentRecord) -> StringName:
@@ -11,6 +25,7 @@ func report(incident: IncidentRecord) -> StringName:
 	var grievance_id := incident.id
 	if not _states.has(grievance_id):
 		_states[grievance_id] = GrievanceState.new(grievance_id, incident.issue, incident.affected_workers)
+		_order.append(grievance_id)
 	return grievance_id
 
 
@@ -40,6 +55,18 @@ func advance_deadlines(tick: int) -> void:
 func resolve(grievance_id: StringName) -> bool:
 	var state := _state_for(grievance_id)
 	return state.resolve() if state != null else false
+
+
+func transition_action(grievance_id: StringName, action: StringName) -> bool:
+	var state := _state_for(grievance_id)
+	return state.transition_action(action) if state != null else false
+
+
+func snapshot() -> Array[Dictionary]:
+	var views: Array[Dictionary] = []
+	for grievance_id in _order:
+		views.append(_states[grievance_id].to_dictionary())
+	return views
 
 
 func _state_for(grievance_id: StringName) -> GrievanceState:

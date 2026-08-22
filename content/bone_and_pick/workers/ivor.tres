@@ -10,3 +10,6 @@ species = &"imp"
 job_id = &"lantern_tender"
 traits = Array[StringName]([&"skeptical"])
 event_role_tags = Array[StringName]([&"lantern_tender"])
+initial_trust = 47
+initial_action_willingness = 51
+bargaining_priorities = {&"safety": 2, &"schedule": 1, &"tool_maintenance": 2}

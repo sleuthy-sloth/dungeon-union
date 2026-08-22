@@ -10,3 +10,6 @@ species = &"kobold"
 job_id = &"tool_mender"
 traits = Array[StringName]([&"inventive"])
 event_role_tags = Array[StringName]([&"tool_mender"])
+initial_trust = 66
+initial_action_willingness = 72
+bargaining_priorities = {&"safety": 1, &"schedule": 1, &"tool_maintenance": 3}

@@ -10,3 +10,6 @@ species = &"hobgoblin"
 job_id = &"lantern_tender"
 traits = Array[StringName]([&"observant"])
 event_role_tags = Array[StringName]([&"lantern_tender"])
+initial_trust = 61
+initial_action_willingness = 63
+bargaining_priorities = {&"safety": 3, &"schedule": 1, &"tool_maintenance": 2}

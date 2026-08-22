@@ -35,6 +35,14 @@ func complete_event(event_id: StringName) -> bool:
 	return _director.complete_event(event_id)
 
 
+func durable_snapshot() -> Dictionary:
+	return _director.durable_snapshot()
+
+
+func restore_progress(view: Dictionary) -> void:
+	_director.restore_progress(view)
+
+
 func _available_event_role_tags(snapshot: Dictionary) -> Array[StringName]:
 	var active_worker_ids: Dictionary[StringName, bool] = {}
 	for state in snapshot.get("workers", []):
