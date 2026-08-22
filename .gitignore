@@ -1,0 +1,15 @@
+# Godot generated data
+.godot/
+.import/
+.mono/
+
+# Export secrets
+export_credentials.cfg
+
+# macOS and editors
+.DS_Store
+*.swp
+*.tmp
+
+# Local brainstorming artifacts
+.superpowers/

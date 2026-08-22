@@ -2,13 +2,13 @@
 
 ## Game Design Document and Production Proposal
 
-**Document version:** 1.0  
-**Date:** August 22, 2026  
-**Status:** Draft for owner review; concept baseline approved  
-**Engine:** Godot 4.x stable  
-**Initial platform:** macOS on Apple Silicon  
-**Business model:** Premium, single-player, offline game  
-**Target campaign length:** 7–9 hours  
+**Document version:** 1.0
+**Date:** August 22, 2026
+**Status:** Design baseline approved for repository publication
+**Engine:** Godot 4.x stable
+**Initial platform:** macOS on Apple Silicon
+**Business model:** Premium, single-player, offline game
+**Target campaign length:** 7–9 hours
 **Target price:** USD $19.99–$24.99, subject to pre-release market validation
 
 ---
@@ -247,44 +247,44 @@ Negotiation produces contract clauses, worker reactions, treasury consequences, 
 
 ### 7.1 Chapter one: Bone & Pick Excavations
 
-**Workplace:** A goblin mine supplying traps and construction stone.  
-**Employer:** Foreman Grint, a petty ogre franchise owner.  
-**Primary lesson:** Listening, evidence, hazards, and informal action.  
-**Central disputes:** Cave-in prevention, lantern fumes, unpaid tool maintenance, and adventurer alarms.  
+**Workplace:** A goblin mine supplying traps and construction stone.
+**Employer:** Foreman Grint, a petty ogre franchise owner.
+**Primary lesson:** Listening, evidence, hazards, and informal action.
+**Central disputes:** Cave-in prevention, lantern fumes, unpaid tool maintenance, and adventurer alarms.
 **Climax:** The player chooses whether to accept fast safety concessions or build toward a broader first contract.
 
 This chapter forms the 60–90-minute vertical slice. It contains 12 active workers, three major dispute lines, six incident families, one complete negotiation, and a limited union-hall sequence.
 
 ### 7.2 Chapter two: Cryptkeep Fulfillment
 
-**Workplace:** An undead archive processing prophecies, curses, and resurrection claims.  
-**Employer:** Senior Necromancer Vale, who treats undeath as exemption from break requirements.  
-**Primary lesson:** Scheduling, surveillance, deadlines, and committees.  
-**Central disputes:** Endless shifts, memory audits, resurrection eligibility, and spectral monitoring.  
+**Workplace:** An undead archive processing prophecies, curses, and resurrection claims.
+**Employer:** Senior Necromancer Vale, who treats undeath as exemption from break requirements.
+**Primary lesson:** Scheduling, surveillance, deadlines, and committees.
+**Central disputes:** Endless shifts, memory audits, resurrection eligibility, and spectral monitoring.
 **Climax:** A coordinated work-to-rule action can expose that management depends on undocumented worker knowledge.
 
 ### 7.3 Chapter three: Giltmaw Holdings
 
-**Workplace:** A dragon-owned treasury and adventurer attraction.  
-**Employer:** Aurix Giltmaw and a kobold management consultancy.  
-**Primary lesson:** Favoritism, subcontracting, public support, and bargaining coalitions.  
-**Central disputes:** Treasure-share theft, contractor exclusion, security searches, and hazardous display work.  
+**Workplace:** A dragon-owned treasury and adventurer attraction.
+**Employer:** Aurix Giltmaw and a kobold management consultancy.
+**Primary lesson:** Favoritism, subcontracting, public support, and bargaining coalitions.
+**Central disputes:** Treasure-share theft, contractor exclusion, security searches, and hazardous display work.
 **Climax:** The player decides whether to include vulnerable subcontractors in the bargaining unit at significant short-term cost.
 
 ### 7.4 Chapter four: Crucible Solutions
 
-**Workplace:** An alchemical foundry producing potions, fumes, and unstable enchantments.  
-**Employer:** The Crucible Board, represented by a smiling homunculus executive.  
-**Primary lesson:** Complex safety chains, retaliation, and strike preparation.  
-**Central disputes:** Catastrophic exposure, species-based job segregation, falsified inspections, and replacement labor.  
+**Workplace:** An alchemical foundry producing potions, fumes, and unstable enchantments.
+**Employer:** The Crucible Board, represented by a smiling homunculus executive.
+**Primary lesson:** Complex safety chains, retaliation, and strike preparation.
+**Central disputes:** Catastrophic exposure, species-based job segregation, falsified inspections, and replacement labor.
 **Climax:** A serious accident forces a choice between immediate shutdown and a risky evidence-gathering operation.
 
 ### 7.5 Chapter five: The Endless Depths Consortium
 
-**Workplace:** A multi-department megadungeon combining extraction, archives, attractions, manufacturing, and logistics.  
-**Employer:** A consortium led by the Infernal Efficiency Office.  
-**Primary lesson:** Coordination across departments and synthesis of every prior system.  
-**Central disputes:** Departmental divide-and-rule tactics, automated traps, outsourcing, and a dungeon-wide master agreement.  
+**Workplace:** A multi-department megadungeon combining extraction, archives, attractions, manufacturing, and logistics.
+**Employer:** A consortium led by the Infernal Efficiency Office.
+**Primary lesson:** Coordination across departments and synthesis of every prior system.
+**Central disputes:** Departmental divide-and-rule tactics, automated traps, outsourcing, and a dungeon-wide master agreement.
 **Climax:** The final campaign may culminate in a master contract, a general strike, a negotiated federation, or local collapse depending on prior choices.
 
 ### 7.6 Endings
