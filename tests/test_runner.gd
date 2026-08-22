@@ -10,6 +10,8 @@ func _init() -> void:
         "res://tests/organizing/test_escalation.gd",
         "res://tests/content/test_bone_and_pick_content.gd",
         "res://tests/events/test_event_pacing.gd",
+        "res://tests/negotiation/test_bone_and_pick_contract.gd",
+        "res://tests/save/test_save_round_trip.gd",
     ]:
         load(script_path).run(t)
     for failure in t.failures:
