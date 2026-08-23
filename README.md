@@ -67,6 +67,16 @@ godot --headless --path . --script res://tests/test_runner.gd
 
 For the full game vision, systems, and production scope, read the [game design document](docs/superpowers/specs/2026-08-22-dungeon-union-design.md).
 
+## Art pipeline
+
+Bone & Pick's isometric environment is authored in Blender and rendered as layered 2.5D PNGs for Godot. Rebuild the editable source scene and its game-ready layers with:
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender --background --python art/blender/scripts/build_bone_and_pick.py
+```
+
+The editable scene is at `art/blender/bone_and_pick_environment.blend`; rendered layers and their contract manifest live in `assets/environment/bone_and_pick/`. Keep Blender as the source of truth for environment changes—Godot only assembles the approved render layers beneath interactive workers and accessibility overlays.
+
 ## Repository guide
 
 | Path | What it contains |

@@ -53,6 +53,7 @@ During natural play, record whether the player can:
 - Move focus with the arrow keys, activate with Enter, open the Union Hall with U, return with B, and still cycle incidents with unmodified Tab.
 - Use the visible Save and Load actions, then confirm the recovered workplace, grievance, resources, event history, and negotiation result match the saved state.
 - Continue after enabling UI scale, high contrast, reduced motion, dyslexia-friendly font, or auto-pause settings requested for access.
+- At normal zoom and again at 2× UI scale, identify the ore cart, fume area, alarm post, and a selected worker without any part obscuring the worker ring, nameplate, hatching, or incident marker.
 
 Record requested settings and any assistance. Do not ask players to disclose a diagnosis.
 
