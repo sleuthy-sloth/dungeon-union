@@ -7,6 +7,9 @@ const PAPER := Color("e8d9b5")
 const BRASS := Color("d2a75c")
 const UNION_RED := Color("a54138")
 const SAFETY_TEAL := Color("79b7b0")
+const ENVIRONMENT_MANIFEST := "res://assets/environment/bone_and_pick/manifest.json"
+const ENVIRONMENT_RENDER_SCALE := 0.34
+const EnvironmentArtManifestScript = preload("res://src/workplace/environment_art_manifest.gd")
 
 const WORKER_POSITIONS: Array[Vector2] = [
 	Vector2(-250, -75), Vector2(-125, -142), Vector2(10, -74), Vector2(146, -142),
@@ -23,14 +26,58 @@ var _high_contrast := false
 var _reduced_motion := false
 var _elapsed := 0.0
 var _body_font: SystemFont
+var _environment_loaded := false
+var _environment_layer_names := PackedStringArray()
+@export_file("*.json") var environment_manifest_path := ENVIRONMENT_MANIFEST
 
 
 func configure(catalog: ContentCatalog) -> void:
 	_catalog = catalog
 	_body_font = SystemFont.new()
 	_body_font.font_names = PackedStringArray(["Avenir Next", "Avenir", "Helvetica Neue", "Arial"])
+	_build_environment_art()
 	_build_worker_tokens()
 	queue_redraw()
+
+
+func environment_art_loaded() -> bool:
+	return _environment_loaded
+
+
+func environment_art_layer_names() -> PackedStringArray:
+	return _environment_layer_names.duplicate()
+
+
+func _build_environment_art() -> void:
+	var existing := get_node_or_null("EnvironmentArt")
+	if existing != null:
+		existing.queue_free()
+	_environment_loaded = false
+	_environment_layer_names = PackedStringArray()
+	var manifest: Variant = EnvironmentArtManifestScript.load_from_path(environment_manifest_path)
+	if not manifest.is_valid():
+		push_warning("Environment art fallback: %s" % "; ".join(manifest.errors))
+		return
+	var container := Node2D.new()
+	container.name = "EnvironmentArt"
+	container.z_index = -50
+	add_child(container)
+	for layer: Dictionary in manifest.layers:
+		var image := Image.load_from_file(ProjectSettings.globalize_path(environment_manifest_path.get_base_dir().path_join(String(layer.file))))
+		if image.is_empty():
+			container.queue_free()
+			push_warning("Environment art fallback: unreadable %s" % String(layer.file))
+			return
+		var texture: Texture2D = ImageTexture.create_from_image(image)
+		var sprite := Sprite2D.new()
+		sprite.name = String(layer.id)
+		sprite.texture = texture
+		sprite.position = Vector2(layer.anchor) * ENVIRONMENT_RENDER_SCALE
+		sprite.scale = Vector2.ONE * ENVIRONMENT_RENDER_SCALE
+		sprite.z_index = int(layer.z_index)
+		container.add_child(sprite)
+		_environment_layer_names.append(String(layer.id))
+	_environment_loaded = true
 
 
 func update_view(view: Dictionary) -> void:

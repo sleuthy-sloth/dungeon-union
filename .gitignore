@@ -1,6 +1,7 @@
 # Godot generated data
 .godot/
 .import/
+*.import
 .mono/
 
 # Export secrets
