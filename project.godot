@@ -1,5 +1,10 @@
 ; Engine configuration file.
-; Generated for the Dungeon Union application shell.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -7,6 +12,7 @@ config_version=5
 
 config/name="Dungeon Union"
 run/main_scene="res://src/app/app_root.tscn"
+config/features=PackedStringArray("4.7")
 
 [display]
 
