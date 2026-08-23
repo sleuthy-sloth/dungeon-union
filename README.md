@@ -1,26 +1,81 @@
 # Dungeon Union
 
-A premium isometric management game about organizing the monsters who keep fantasy dungeons running.
+![Dungeon Union — workers of the deep](docs/images/dungeon-union-header.svg)
 
-## Status
+> **A premium isometric management game about organizing the monsters who keep fantasy dungeons running.**
 
-The playable Bone & Pick vertical slice is implemented in Godot, including deterministic workplace simulation, authored incidents, grievance escalation, negotiation, save recovery, the union hall, and keyboard-accessible presentation. The complete game design and production proposal remains available in [the GDD](docs/superpowers/specs/2026-08-22-dungeon-union-design.md).
+The adventurers get the glory. The foremen keep the ledgers. You represent everyone else.
 
-Final art/audio, target-Mac performance profiling, an external three-player playtest, and exported-build validation remain production gates.
+In **Dungeon Union**, you build solidarity below ground: listen to workers, turn incidents into grievances, choose how far to escalate, and bargain for a contract that changes the dungeon for good. Every worker has a job, a history, a breaking point, and a stake in what you ask them to risk.
 
-## Product baseline
+## The pitch
 
-- Godot 4.x with statically typed GDScript
-- Native macOS release targeting Apple Silicon
-- Illustrated 2D isometric presentation
-- Offline, premium, single-player campaign
-- Five workplaces and a 7–9-hour first campaign
-- Contract Challenge replay mode
+**Genre** · Narrative workplace-management game<br>
+**Perspective** · Illustrated 2D isometric<br>
+**Platform** · Native macOS, Apple Silicon<br>
+**Format** · Offline, single-player premium campaign<br>
+**Campaign** · Five workplaces · 7–9 hours · Contract Challenge replay mode
 
-## Model workflow
+## Beneath Bone & Pick
 
-GPT-5.6 Sol is the lead architect and integrator. OX Alpha is the independent prototyper and adversarial reviewer. See [AGENTS.md](AGENTS.md) for repository working agreements.
+The playable opening chapter takes you into **Bone & Pick**, a bustling dungeon mine where the work never ends and the safety rules have become optional.
+
+| Build solidarity | Make the case | Win the terms |
+| :--- | :--- | :--- |
+| Get to know twelve workers and their interlocking pressures. | Investigate incidents, document evidence, and decide how to respond. | Organize, negotiate, and ratify a contract that leaves a visible mark on the workplace. |
+
+The vertical slice currently includes:
+
+- An authored cast of 12 workers, 3 disputes, and 6 workplace events.
+- A deterministic workplace simulation with time controls and an isometric mine view.
+- Grievances, evidence, a four-step escalation ladder, and contract negotiation.
+- A Union Hall with five campaign upgrade branches.
+- Local saves, recovery, autosaves, and keyboard-first accessibility support.
+
+## Play the slice
+
+### Requirements
+
+- macOS on Apple Silicon
+- [Godot 4.x](https://godotengine.org/download/macos/)
+
+### Run from source
+
+1. Clone this repository.
+2. Import `project.godot` into Godot 4.x.
+3. Press **F6** / **Run Current Scene**, or select the project and press **F5**.
+
+For a headless verification run:
+
+```sh
+godot --headless --path . --script res://tests/test_runner.gd
+```
+
+### Keyboard at a glance
+
+| Input | Action |
+| :--- | :--- |
+| Arrow keys | Move between workers, incidents, actions, and Union Hall options |
+| Enter | Confirm the focused action |
+| Tab | Cycle active incidents |
+| U | Enter the Union Hall |
+| B | Return to the workplace |
+
+## Development status
+
+**Bone & Pick is playable.** It is a polished vertical slice, not the final commercial release. The remaining production work includes final art and audio, target-Mac performance profiling, an external playtest pass, and exported-build validation.
+
+For the full game vision, systems, and production scope, read the [game design document](docs/superpowers/specs/2026-08-22-dungeon-union-design.md).
+
+## Repository guide
+
+| Path | What it contains |
+| :--- | :--- |
+| `content/bone_and_pick/` | Authored workers, jobs, and workplace events |
+| `src/` | Game systems, simulation, UI, save handling, and campaign logic |
+| `tests/` | Deterministic, acceptance, smoke, and performance tests |
+| `docs/` | Design, production planning, and playtest materials |
 
 ## Rights
 
-This repository is public, but no open-source license has been selected. No license to copy, modify, or distribute the project is granted until a `LICENSE` file is added by the repository owner.
+Dungeon Union is a commercial project. The source and all included materials are released under the [All Rights Reserved license](LICENSE). Public access to this repository does not grant permission to copy, redistribute, modify, or use its contents.

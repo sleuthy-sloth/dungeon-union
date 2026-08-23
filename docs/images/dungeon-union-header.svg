@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 600" role="img" aria-labelledby="title desc">
+  <title id="title">Dungeon Union — workers of the deep</title>
+  <desc id="desc">An original isometric mine scene in charcoal, ember, and brass, with a union banner above a glowing dungeon entrance.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#171b29"/><stop offset="1" stop-color="#34253a"/></linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b5263"/><stop offset="1" stop-color="#2b2c3b"/></linearGradient>
+    <radialGradient id="ember" cx="50%" cy="50%" r="55%"><stop offset="0" stop-color="#ffd784"/><stop offset=".35" stop-color="#e98b3a"/><stop offset="1" stop-color="#9b3f35" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="10" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1600" height="600" fill="url(#sky)"/>
+  <path d="M0 415 350 245 790 388 1120 210 1600 430V600H0Z" fill="#242635"/>
+  <path d="M0 455 350 285 790 428 1120 250 1600 470V600H0Z" fill="url(#stone)" stroke="#716679" stroke-width="4"/>
+  <path d="m350 285 440 143v172L350 430Z" fill="#3e394a" stroke="#716679" stroke-width="4"/>
+  <path d="m790 428 330-178v168L790 600Z" fill="#302f40" stroke="#716679" stroke-width="4"/>
+  <path d="m350 285 440 143 330-178-430-138Z" fill="#6a5e70" stroke="#918097" stroke-width="4"/>
+  <g opacity=".55" stroke="#a48ea3" stroke-width="3"><path d="m465 248 435 140M570 211l438 140M688 172l436 140"/><path d="m476 330 312 102M605 277l183 60"/></g>
+  <ellipse cx="818" cy="367" rx="210" ry="134" fill="url(#ember)" opacity=".72" filter="url(#glow)"/>
+  <path d="m682 354 136-77 139 76-139 79Z" fill="#1a1c28" stroke="#d68a45" stroke-width="8"/>
+  <path d="m682 354 136 78v94l-136-77ZM818 432l139-79v96l-139 77Z" fill="#25202a" stroke="#d68a45" stroke-width="8"/>
+  <path d="M791 321h56v118h-56z" fill="#f4b65e" filter="url(#glow)"/>
+  <g fill="#e6b46c" stroke="#2b2630" stroke-width="7"><path d="m498 283 34-18 34 18-34 19Z"/><path d="m498 283 34 19v48l-34-19Z"/><path d="m532 302 34-19v48l-34 19Z"/><path d="m1052 285 34-18 34 18-34 19Z"/><path d="m1052 285 34 19v48l-34-19Z"/><path d="m1086 304 34-19v48l-34 19Z"/></g>
+  <g fill="#f0cf8a"><circle cx="226" cy="121" r="3"/><circle cx="376" cy="90" r="4"/><circle cx="1245" cy="116" r="3"/><circle cx="1380" cy="187" r="4"/><circle cx="1460" cy="83" r="3"/></g>
+  <g transform="translate(105 78)"><path d="M0 22 130 0l130 22-130 21Z" fill="#e5a651"/><path d="M0 22 130 43v158L0 177Z" fill="#b44642"/><path d="m130 43 130-21v155l-130 24Z" fill="#7d303a"/><path d="M120 76h20v96h-20z" fill="#f4d48e"/><path d="M80 114h100v20H80z" fill="#f4d48e"/></g>
+  <g fill="#f2e3bf" font-family="Georgia, serif" text-anchor="middle"><text x="800" y="95" font-size="30" letter-spacing="12">THE WORKERS OF THE DEEP</text><text x="800" y="172" font-size="84" font-weight="bold" letter-spacing="4">DUNGEON UNION</text><text x="800" y="215" font-size="24" letter-spacing="5">ORGANIZE THE DUNGEON. CHANGE THE CONTRACT.</text></g>
+</svg>
