@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/events/event_definition.gd" id="1_event"]
+
+[resource]
+script = ExtResource("1_event")
+id = &"lantern_fumes"
+family = &"lantern_fumes"
+issue = &"lantern_fume_exposure"
+event_kind = &"grievance"
+minimum_tick = 60
+major = true
+required_worker_tags = Array[StringName]([&"lantern_tender"])
+presentation_title = "Lantern fumes"
+presentation_description = "Blue lantern smoke pools below the gallery roof. Drusk reports dizziness and poor ventilation."
+visual_pattern = "/// / airborne hazard"
+evidence_kind = &"fume_testimony"
+evidence_source = &"affected_worker"
+evidence_reliability = 2
+evidence_window_ticks = 960

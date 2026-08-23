@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/events/event_definition.gd" id="1_event"]
+
+[resource]
+script = ExtResource("1_event")
+id = &"adventurer_alarm"
+family = &"adventurer_alarm"
+issue = &"cave_in_prevention"
+event_kind = &"grievance"
+minimum_tick = 180
+major = true
+required_worker_tags = Array[StringName]([&"alarm_watcher"])
+presentation_title = "Adventurer alarm"
+presentation_description = "The alarm roster leaves Ember alone at the post during the busiest haul."
+visual_pattern = "!!! / staffing alarm"
+evidence_kind = &"shoring_testimony"
+evidence_source = &"affected_worker"
+evidence_reliability = 2
+evidence_window_ticks = 960

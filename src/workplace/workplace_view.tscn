@@ -1,0 +1,52 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/workplace/workplace_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://src/workplace/workplace_mine_view.gd" id="2_mine"]
+[ext_resource type="PackedScene" path="res://src/ui/workplace_hud.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://src/ui/union_hall_view.tscn" id="4_hall"]
+[ext_resource type="Script" path="res://src/accessibility/accessibility_settings.gd" id="5_accessibility"]
+
+[sub_resource type="Resource" id="Resource_accessibility"]
+script = ExtResource("5_accessibility")
+
+[node name="WorkplaceView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_controller")
+accessibility_settings = SubResource("Resource_accessibility")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0431373, 0.0666667, 0.0784314, 1)
+
+[node name="MineViewport" type="Node2D" parent="."]
+position = Vector2(715, 445)
+y_sort_enabled = true
+script = ExtResource("2_mine")
+
+[node name="MineInputSurface" type="Control" parent="."]
+layout_mode = 0
+offset_left = 330.0
+offset_top = 66.0
+offset_right = 1112.0
+offset_bottom = 842.0
+mouse_filter = 0
+mouse_force_pass_scroll_events = false
+
+[node name="WorkplaceHUD" parent="." instance=ExtResource("3_hud")]
+layout_mode = 1
+
+[node name="UnionHallView" parent="." instance=ExtResource("4_hall")]
+visible = false
+layout_mode = 1

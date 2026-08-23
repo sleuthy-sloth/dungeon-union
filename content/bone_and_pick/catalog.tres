@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="ContentCatalog" load_steps=31 format=3]
+
+[ext_resource type="Script" path="res://src/content/content_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://src/content/worker_definition.gd" id="2_worker_script"]
+[ext_resource type="Script" path="res://src/content/job_definition.gd" id="3_job_script"]
+[ext_resource type="Script" path="res://src/content/workplace_definition.gd" id="4_workplace_script"]
+[ext_resource type="Script" path="res://src/events/event_definition.gd" id="5_event_script"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/nib.tres" id="6_nib"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/brakka.tres" id="7_brakka"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/clatter.tres" id="8_clatter"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/drusk.tres" id="9_drusk"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/ember.tres" id="10_ember"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/fizz.tres" id="11_fizz"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/grib.tres" id="12_grib"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/hush.tres" id="13_hush"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/ivor.tres" id="14_ivor"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/jink.tres" id="15_jink"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/kora.tres" id="16_kora"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workers/lute.tres" id="17_lute"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/jobs/miner.tres" id="18_miner"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/jobs/shoring_carpenter.tres" id="19_shorer"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/jobs/tool_mender.tres" id="20_mender"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/jobs/lantern_tender.tres" id="21_lantern"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/jobs/alarm_watcher.tres" id="22_alarm"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/jobs/hauler.tres" id="23_hauler"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/workplace.tres" id="24_workplace"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/events/cave_in_risk.tres" id="25_cave"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/events/lantern_fumes.tres" id="26_fumes"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/events/unpaid_maintenance.tres" id="27_maintenance"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/events/adventurer_alarm.tres" id="28_alarm_event"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/events/foreman_intimidation.tres" id="29_intimidation"]
+[ext_resource type="Resource" path="res://content/bone_and_pick/events/spontaneous_mutual_aid.tres" id="30_aid"]
+
+[resource]
+script = ExtResource("1_catalog")
+worker_items = Array[ExtResource("2_worker_script")]([ExtResource("6_nib"), ExtResource("7_brakka"), ExtResource("8_clatter"), ExtResource("9_drusk"), ExtResource("10_ember"), ExtResource("11_fizz"), ExtResource("12_grib"), ExtResource("13_hush"), ExtResource("14_ivor"), ExtResource("15_jink"), ExtResource("16_kora"), ExtResource("17_lute")])
+job_items = Array[ExtResource("3_job_script")]([ExtResource("18_miner"), ExtResource("19_shorer"), ExtResource("20_mender"), ExtResource("21_lantern"), ExtResource("22_alarm"), ExtResource("23_hauler")])
+workplace_items = Array[ExtResource("4_workplace_script")]([ExtResource("24_workplace")])
+event_items = Array[ExtResource("5_event_script")]([ExtResource("25_cave"), ExtResource("26_fumes"), ExtResource("27_maintenance"), ExtResource("28_alarm_event"), ExtResource("29_intimidation"), ExtResource("30_aid")])

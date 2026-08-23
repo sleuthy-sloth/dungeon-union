@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WorkerDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/worker_definition.gd" id="1_worker"]
+
+[resource]
+script = ExtResource("1_worker")
+id = &"ivor"
+display_name = "Ivor Glowglass"
+species = &"imp"
+job_id = &"lantern_tender"
+traits = Array[StringName]([&"skeptical"])
+event_role_tags = Array[StringName]([&"lantern_tender"])
+initial_trust = 47
+initial_action_willingness = 51
+bargaining_priorities = {&"safety": 2, &"schedule": 1, &"tool_maintenance": 2}

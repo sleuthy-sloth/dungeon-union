@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/events/event_definition.gd" id="1_event"]
+
+[resource]
+script = ExtResource("1_event")
+id = &"unpaid_maintenance"
+family = &"unpaid_maintenance"
+issue = &"maintenance_pay"
+event_kind = &"grievance"
+minimum_tick = 120
+major = true
+required_worker_tags = Array[StringName]([&"tool_mender"])
+presentation_title = "Unpaid maintenance"
+presentation_description = "Clatter's repair ledger shows another unpaid hour at the tool bench."
+visual_pattern = "+++ / wage record"
+evidence_kind = &"tool_ledger"
+evidence_source = &"repair_ledger"
+evidence_reliability = 2
+evidence_window_ticks = 960

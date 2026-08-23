@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WorkerDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/worker_definition.gd" id="1_worker"]
+
+[resource]
+script = ExtResource("1_worker")
+id = &"ember"
+display_name = "Ember Bellpull"
+species = &"kobold"
+job_id = &"alarm_watcher"
+traits = Array[StringName]([&"alert"])
+event_role_tags = Array[StringName]([&"alarm_watcher"])
+initial_trust = 61
+initial_action_willingness = 70
+bargaining_priorities = {&"safety": 3, &"schedule": 2, &"tool_maintenance": 1}

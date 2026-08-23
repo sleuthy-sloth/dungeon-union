@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WorkerDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/worker_definition.gd" id="1_worker"]
+
+[resource]
+script = ExtResource("1_worker")
+id = &"clatter"
+display_name = "Clatter Rivet"
+species = &"skeleton"
+job_id = &"tool_mender"
+traits = Array[StringName]([&"meticulous"])
+event_role_tags = Array[StringName]([&"tool_mender"])
+initial_trust = 64
+initial_action_willingness = 66
+bargaining_priorities = {&"safety": 1, &"schedule": 2, &"tool_maintenance": 3}

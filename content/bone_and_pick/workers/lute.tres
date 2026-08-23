@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WorkerDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/worker_definition.gd" id="1_worker"]
+
+[resource]
+script = ExtResource("1_worker")
+id = &"lute"
+display_name = "Lute Handcart"
+species = &"bugbear"
+job_id = &"hauler"
+traits = Array[StringName]([&"generous"])
+event_role_tags = Array[StringName]([&"hauler", &"mutual_aid_steward"])
+initial_trust = 79
+initial_action_willingness = 76
+bargaining_priorities = {&"safety": 2, &"schedule": 3, &"tool_maintenance": 1}

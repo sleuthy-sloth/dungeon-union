@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WorkerDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/worker_definition.gd" id="1_worker"]
+
+[resource]
+script = ExtResource("1_worker")
+id = &"drusk"
+display_name = "Drusk Sootnose"
+species = &"hobgoblin"
+job_id = &"lantern_tender"
+traits = Array[StringName]([&"observant"])
+event_role_tags = Array[StringName]([&"lantern_tender"])
+initial_trust = 61
+initial_action_willingness = 63
+bargaining_priorities = {&"safety": 3, &"schedule": 1, &"tool_maintenance": 2}
