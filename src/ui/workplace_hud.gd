@@ -218,6 +218,18 @@ func _build_fonts() -> void:
 
 
 func _build_interface() -> void:
+	var dossier_texture := TextureRect.new()
+	dossier_texture.name = "UnionPamphletTexture"
+	var dossier_image := Image.load_from_file(ProjectSettings.globalize_path("res://assets/ui/union-pamphlet-panel-v1.png"))
+	if not dossier_image.is_empty():
+		dossier_texture.texture = ImageTexture.create_from_image(dossier_image)
+	dossier_texture.position = Vector2(11, 76)
+	dossier_texture.size = Vector2(313, 768)
+	dossier_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	dossier_texture.stretch_mode = TextureRect.STRETCH_SCALE
+	dossier_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dossier_texture.modulate = Color(1, 1, 1, 0.34)
+	add_child(dossier_texture)
 	_labels.time = _label("DAY 01  ·  PAUSED  ·  TICK 0000", Vector2(24, 17), Vector2(410, 36), 16, _data_font, PAPER)
 	_labels.resources = _label("TREASURY  10     SOLIDARITY  60%     PRESSURE  24%", Vector2(465, 17), Vector2(480, 36), 16, _data_font, PAPER)
 	_labels.docket_heading = _label("BONE & PICK / SHIFT DOCKET", Vector2(36, 98), Vector2(274, 38), 19, _display_font, COAL)
