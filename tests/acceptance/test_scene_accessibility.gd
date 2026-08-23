@@ -8,6 +8,7 @@ static func run(t: TestCase) -> void:
 		return
 	var app: Node = load("res://src/app/app_root.tscn").instantiate()
 	tree.root.add_child(app)
+	app.begin_shift(false)
 	var workplace: WorkplaceController = app.get_node("WorkplaceView")
 	t.check(workplace.has_node("MineInputSurface"), "workplace owns a dedicated central GUI input surface")
 	if not workplace.has_node("MineInputSurface"):
@@ -31,6 +32,8 @@ static func run(t: TestCase) -> void:
 	workplace.advance_frame(0.25)
 	workplace.advance_frame(75.0)
 	var hud: WorkplaceHUD = workplace.get_node("WorkplaceHUD")
+	var case_texture: TextureRect = hud.find_child("CaseFileTexture", true, false)
+	t.check(case_texture != null and case_texture.mouse_filter == Control.MOUSE_FILTER_IGNORE, "case-file texture cannot block controls")
 	t.check(hud.has_method("worker_button") and hud.has_method("incident_button"), "HUD exposes focusable worker and incident controls")
 	var active_incidents: Array = workplace.read_view().active_incidents
 	t.check(active_incidents.size() >= 2, "viewport shortcut fixture has at least two simultaneously active authored occurrences")

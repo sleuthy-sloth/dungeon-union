@@ -1,0 +1,164 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/ui/title_screen.gd" id="1_title"]
+
+[node name="TitleScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_title")
+
+[node name="KeyArt" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0431373, 0.0666667, 0.0784314, 0.38)
+
+[node name="Masthead" type="Label" parent="."]
+layout_mode = 0
+offset_left = 384.0
+offset_top = 166.0
+offset_right = 1056.0
+offset_bottom = 246.0
+theme_override_colors/font_color = Color(0.909804, 0.85098, 0.709804, 1)
+theme_override_colors/font_outline_color = Color(0.0431373, 0.0666667, 0.0784314, 1)
+theme_override_constants/outline_size = 9
+theme_override_font_sizes/font_size = 56
+text = "DUNGEON UNION"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="."]
+layout_mode = 0
+offset_left = 420.0
+offset_top = 248.0
+offset_right = 1020.0
+offset_bottom = 284.0
+theme_override_colors/font_color = Color(0.909804, 0.85098, 0.709804, 1)
+theme_override_font_sizes/font_size = 17
+text = "THE WORKERS OF THE DEEP  ·  BONE & PICK LOCAL"
+horizontal_alignment = 1
+
+[node name="ContinueShift" type="Button" parent="."]
+layout_mode = 0
+offset_left = 568.0
+offset_top = 424.0
+offset_right = 872.0
+offset_bottom = 478.0
+focus_mode = 2
+theme_override_colors/font_color = Color(0.0431373, 0.0666667, 0.0784314, 1)
+theme_override_colors/font_hover_color = Color(0.909804, 0.85098, 0.709804, 1)
+theme_override_font_sizes/font_size = 18
+text = "CONTINUE SHIFT"
+
+[node name="NewShift" type="Button" parent="."]
+layout_mode = 0
+offset_left = 568.0
+offset_top = 490.0
+offset_right = 872.0
+offset_bottom = 544.0
+focus_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "NEW SHIFT"
+
+[node name="Accessibility" type="Button" parent="."]
+layout_mode = 0
+offset_left = 568.0
+offset_top = 556.0
+offset_right = 872.0
+offset_bottom = 610.0
+focus_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "ACCESSIBILITY"
+
+[node name="Footer" type="Label" parent="."]
+layout_mode = 0
+offset_left = 460.0
+offset_top = 796.0
+offset_right = 980.0
+offset_bottom = 824.0
+theme_override_colors/font_color = Color(0.909804, 0.85098, 0.709804, 0.72)
+theme_override_font_sizes/font_size = 13
+text = "ORGANIZE THE DUNGEON.  CHANGE THE CONTRACT."
+horizontal_alignment = 1
+
+[node name="AccessibilityDrawer" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 906.0
+offset_top = 422.0
+offset_right = 1268.0
+offset_bottom = 656.0
+
+[node name="Heading" type="Label" parent="AccessibilityDrawer"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 14.0
+offset_right = 340.0
+offset_bottom = 42.0
+theme_override_font_sizes/font_size = 17
+text = "ACCESSIBILITY"
+
+[node name="ReducedMotion" type="CheckButton" parent="AccessibilityDrawer"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 50.0
+offset_right = 340.0
+offset_bottom = 82.0
+focus_mode = 2
+text = "Reduced motion"
+
+[node name="HighContrast" type="CheckButton" parent="AccessibilityDrawer"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 88.0
+offset_right = 340.0
+offset_bottom = 120.0
+focus_mode = 2
+text = "High contrast"
+
+[node name="ReadableFont" type="CheckButton" parent="AccessibilityDrawer"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 126.0
+offset_right = 340.0
+offset_bottom = 158.0
+focus_mode = 2
+text = "Readable font"
+
+[node name="ScaleLabel" type="Label" parent="AccessibilityDrawer"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 169.0
+offset_right = 340.0
+offset_bottom = 194.0
+text = "Interface scale"
+
+[node name="UIScale" type="HSlider" parent="AccessibilityDrawer"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 199.0
+offset_right = 340.0
+offset_bottom = 220.0
+min_value = 0.75
+max_value = 2.0
+step = 0.05
+value = 1.0
+focus_mode = 2
