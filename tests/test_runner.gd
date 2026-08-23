@@ -30,6 +30,7 @@ func _run_all() -> void:
 		"res://tests/acceptance/test_evidence_window_equivalence.gd",
 		"res://tests/acceptance/test_keyboard_accessibility.gd",
 		"res://tests/acceptance/test_environment_art.gd",
+		"res://tests/acceptance/test_title_screen.gd",
 	]:
 		if script_path in ["res://tests/acceptance/test_scene_accessibility.gd", "res://tests/acceptance/test_keyboard_accessibility.gd"]:
 			await load(script_path).run(t)
