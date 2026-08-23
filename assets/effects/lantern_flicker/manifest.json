@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "fps": 8,
+  "frames": [
+    "lantern_flicker_00.png",
+    "lantern_flicker_01.png",
+    "lantern_flicker_02.png",
+    "lantern_flicker_03.png",
+    "lantern_flicker_04.png",
+    "lantern_flicker_05.png"
+  ]
+}

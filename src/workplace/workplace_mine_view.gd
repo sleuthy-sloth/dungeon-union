@@ -9,6 +9,7 @@ const UNION_RED := Color("a54138")
 const SAFETY_TEAL := Color("79b7b0")
 const ENVIRONMENT_MANIFEST := "res://assets/environment/bone_and_pick/manifest.json"
 const ENVIRONMENT_RENDER_SCALE := 0.34
+const LANTERN_FLICKER_MANIFEST := "res://assets/effects/lantern_flicker/manifest.json"
 const EnvironmentArtManifestScript = preload("res://src/workplace/environment_art_manifest.gd")
 
 const WORKER_POSITIONS: Array[Vector2] = [
@@ -77,7 +78,40 @@ func _build_environment_art() -> void:
 		sprite.z_index = int(layer.z_index)
 		container.add_child(sprite)
 		_environment_layer_names.append(String(layer.id))
+	_build_lantern_flicker(container)
 	_environment_loaded = true
+
+
+func _build_lantern_flicker(container: Node2D) -> void:
+	if not FileAccess.file_exists(LANTERN_FLICKER_MANIFEST):
+		return
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(LANTERN_FLICKER_MANIFEST))
+	if not parsed is Dictionary:
+		return
+	var manifest: Dictionary = parsed
+	var frame_names: Array = manifest.get("frames", [])
+	if frame_names.is_empty():
+		return
+	var frames := SpriteFrames.new()
+	frames.remove_animation(&"default")
+	frames.add_animation(&"flicker")
+	frames.set_animation_speed(&"flicker", float(manifest.get("fps", 8)))
+	frames.set_animation_loop(&"flicker", true)
+	for frame_name: Variant in frame_names:
+		var frame_path := LANTERN_FLICKER_MANIFEST.get_base_dir().path_join(String(frame_name))
+		var image := Image.load_from_file(ProjectSettings.globalize_path(frame_path))
+		if image.is_empty():
+			return
+		frames.add_frame(&"flicker", ImageTexture.create_from_image(image))
+	var lantern := AnimatedSprite2D.new()
+	lantern.name = "LanternFlicker"
+	lantern.sprite_frames = frames
+	lantern.animation = &"flicker"
+	lantern.position = Vector2(-146, -112)
+	lantern.scale = Vector2.ONE * 0.36
+	lantern.z_index = -5
+	lantern.play()
+	container.add_child(lantern)
 
 
 func update_view(view: Dictionary) -> void:
@@ -190,7 +224,8 @@ func _incident_position(event_id: StringName, fallback_index: int) -> Vector2:
 
 func _build_worker_tokens() -> void:
 	for child in get_children():
-		child.queue_free()
+		if String(child.name).begins_with("Worker_"):
+			child.queue_free()
 	_worker_nodes.clear()
 	if _catalog == null:
 		return
