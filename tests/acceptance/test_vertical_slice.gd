@@ -25,6 +25,16 @@ static func run(t: TestCase) -> void:
 		t.equal(documented[0].id, active_occurrence.id, "documented grievance retains the authored occurrence identity")
 		t.equal(documented[0].issue, active_occurrence.issue, "documented grievance retains the authored issue")
 	slice.complete_workdays(3)
+	var progressed: Dictionary = slice.durable_snapshot()
+	t.check(progressed.has("incidents"), "fixture publishes production occurrence history instead of a private active-event shortcut")
+	for grievance in progressed.grievances:
+		t.equal(grievance.phase, &"resolved", "fixture closes intervening grievances through a public settlement")
+		t.equal(grievance.action_history, [&"informal"], "fixture records the production informal escalation used before settlement")
+		t.equal(grievance.resolved_action, &"fixture_settlement", "fixture records its explicit production remedy")
+	if progressed.has("incidents"):
+		for occurrence in progressed.incidents:
+			if StringName(occurrence.event_kind) == EventDefinition.POSITIVE_KIND:
+				t.equal(occurrence.completion, &"acknowledged", "fixture acknowledges intervening positive events through the public route")
 	var result: Dictionary = slice.negotiate_and_ratify(&"safety_first")
 	t.check(result.ratified, "prepared safety package ratifies")
 	var restored: Variant = slice.save_and_restore()

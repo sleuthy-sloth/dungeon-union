@@ -4,9 +4,9 @@ A premium isometric management game about organizing the monsters who keep fanta
 
 ## Status
 
-Pre-production design. The complete game design and production proposal is available in [the GDD](docs/superpowers/specs/2026-08-22-dungeon-union-design.md).
+The playable Bone & Pick vertical slice is implemented in Godot, including deterministic workplace simulation, authored incidents, grievance escalation, negotiation, save recovery, the union hall, and keyboard-accessible presentation. The complete game design and production proposal remains available in [the GDD](docs/superpowers/specs/2026-08-22-dungeon-union-design.md).
 
-No gameplay code has been scaffolded yet. The first implementation target is the 60–90-minute Bone & Pick vertical slice defined in the GDD.
+Final art/audio, target-Mac performance profiling, an external three-player playtest, and exported-build validation remain production gates.
 
 ## Product baseline
 

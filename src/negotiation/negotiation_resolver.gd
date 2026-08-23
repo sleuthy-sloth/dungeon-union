@@ -8,6 +8,9 @@ const RATIFICATION_SCORE := 80
 
 var _state: NegotiationStateScript
 var _issues: Dictionary[StringName, BargainingIssueScript] = {}
+var _issued_offers: Dictionary[StringName, Dictionary] = {}
+var _current_agreement: Dictionary = {}
+var _agreement_generation := 0
 
 
 func _init(state: NegotiationStateScript, issues: Array[BargainingIssueScript]) -> void:
@@ -19,7 +22,10 @@ func _init(state: NegotiationStateScript, issues: Array[BargainingIssueScript]) 
 
 static func bone_and_pick_fixture() -> NegotiationResolver:
 	var state := NegotiationStateScript.new(
-		{&"fume_testimony": 3, &"tool_ledger": 2},
+		[
+			{"id": &"fume_testimony", "kind": &"fume_testimony", "source": &"drusk", "reliability": 3, "deadline_tick": 300, "relevant_issue": &"lantern_fume_exposure"},
+			{"id": &"tool_ledger", "kind": &"tool_ledger", "source": &"repair_ledger", "reliability": 2, "deadline_tick": 300, "relevant_issue": &"maintenance_pay"},
+		],
 		50,
 		60,
 		10,
@@ -43,8 +49,9 @@ static func bone_and_pick(state: NegotiationStateScript) -> NegotiationResolver:
 				{"id": &"worker_safety_committee"},
 			],
 			[6, 10, 14],
-			[&"fume_testimony"],
-			true
+			[&"fume_testimony", &"shoring_testimony"],
+			true,
+			[&"cave_in_prevention", &"lantern_fume_exposure", &"unsafe_fumes"]
 		),
 		BargainingIssueScript.new(
 			&"schedule",
@@ -55,7 +62,9 @@ static func bone_and_pick(state: NegotiationStateScript) -> NegotiationResolver:
 			&"tool_maintenance",
 			[{"id": &"paid_tool_maintenance"}],
 			[8],
-			[&"tool_ledger"]
+			[&"tool_ledger", &"tool_testimony"],
+			false,
+			[&"maintenance_pay"]
 		),
 	]
 	return load("res://src/negotiation/negotiation_resolver.gd").new(state, issues)
@@ -72,21 +81,65 @@ func press(issue_id: StringName, support_id: StringName) -> Dictionary:
 			"employer_score": 0,
 		}
 	var score := _base_leverage()
-	if issue.accepts_support(support_id):
+	var evidence := _state.evidence_record(support_id)
+	if not evidence.is_empty() and issue.accepts_evidence(
+		StringName(evidence.get("kind", &"")), StringName(evidence.get("relevant_issue", &""))
+	):
 		var evidence_strength := _state.evidence_strength(support_id)
 		if evidence_strength > 0:
 			score += evidence_strength + 1
 	var concession := issue.concession_for_score(score)
-	return {
+	var offer_id := StringName("%s|%s" % [issue_id, support_id])
+	var offer := {
 		"issue_id": issue_id,
 		"support_id": support_id,
+		"evidence_id": support_id,
 		"concession_rank": concession.concession_rank,
 		"clause_id": concession.clause_id,
 		"employer_score": score,
+		"_offer_id": offer_id,
 	}
+	_issued_offers[offer_id] = offer.duplicate(true)
+	return offer
+
+
+func issue_tentative_agreement(terms: Dictionary) -> Dictionary:
+	if terms.is_empty():
+		return {}
+	var issued_terms := {}
+	for raw_issue_id in terms:
+		if typeof(raw_issue_id) != TYPE_STRING and typeof(raw_issue_id) != TYPE_STRING_NAME:
+			return {}
+		var issue_id := StringName(raw_issue_id)
+		if not _issues.has(issue_id):
+			return {}
+		var raw_term: Variant = terms[raw_issue_id]
+		if not raw_term is Dictionary:
+			return {}
+		var term: Dictionary = raw_term
+		var offer_id := StringName(term.get("_offer_id", &""))
+		if offer_id.is_empty() or not _issued_offers.has(offer_id) or _issued_offers[offer_id] != term:
+			return {}
+		if StringName(term.get("issue_id", &"")) != issue_id:
+			return {}
+		issued_terms[issue_id] = term.duplicate(true)
+	_agreement_generation += 1
+	issued_terms["_issued_agreement_id"] = StringName("agreement_%d" % _agreement_generation)
+	issued_terms["_issuer_token"] = get_instance_id()
+	_current_agreement = issued_terms.duplicate(true)
+	return issued_terms.duplicate(true)
 
 
 func ratify(package: Dictionary) -> Dictionary:
+	if package.is_empty() or _current_agreement.is_empty() or package != _current_agreement:
+		return {
+			"ratified": false,
+			"yes_votes": [],
+			"no_votes": [],
+			"explanations": {},
+			"eligibility_blockers": [&"tentative_agreement"],
+			"agreement_error": "tentative agreement was not issued by this resolver",
+		}
 	var yes_votes: Array[StringName] = []
 	var no_votes: Array[StringName] = []
 	var explanations: Dictionary[StringName, String] = {}
@@ -108,6 +161,7 @@ func ratify(package: Dictionary) -> Dictionary:
 		"no_votes": no_votes,
 		"explanations": explanations,
 		"eligibility_blockers": eligibility_blockers,
+		"agreement_error": "",
 	}
 
 
@@ -120,14 +174,14 @@ func _earned_evidence_blockers(package: Dictionary) -> Array[StringName]:
 		var issue: BargainingIssueScript = _issues.get(issue_id)
 		if issue == null or not issue.requires_earned_evidence() or _package_rank(package, issue_id) <= 0:
 			continue
-		var relevant_support := issue.relevant_support_ids()
-		if relevant_support.is_empty():
+		if issue.relevant_support_ids().is_empty():
 			continue
-		var has_earned_evidence := false
-		for support_id in relevant_support:
-			if _state.evidence_strength(support_id) > 0:
-				has_earned_evidence = true
-				break
+		var term: Variant = package.get(issue_id, {})
+		var support_id := StringName(term.get("evidence_id", &"")) if term is Dictionary else &""
+		var evidence := _state.evidence_record(support_id)
+		var has_earned_evidence := not evidence.is_empty() and _state.evidence_strength(support_id) > 0 and issue.accepts_evidence(
+			StringName(evidence.get("kind", &"")), StringName(evidence.get("relevant_issue", &""))
+		)
 		if not has_earned_evidence:
 			blockers.append(issue_id)
 	blockers.sort_custom(func(left: StringName, right: StringName) -> bool:

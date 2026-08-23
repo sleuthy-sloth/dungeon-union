@@ -5,6 +5,7 @@ var _id: StringName
 var _clauses: Array[Dictionary] = []
 var _score_thresholds: Array[int] = []
 var _relevant_support: Array[StringName] = []
+var _relevant_issues: Array[StringName] = []
 var _requires_earned_evidence := false
 
 var id: StringName:
@@ -25,13 +26,15 @@ func _init(
 	clauses: Array[Dictionary],
 	score_thresholds: Array[int],
 	relevant_support: Array[StringName] = [],
-	requires_earned_evidence: bool = false
+	requires_earned_evidence: bool = false,
+	relevant_issues: Array[StringName] = []
 ) -> void:
 	_id = issue_id
 	_clauses = clauses.duplicate(true)
 	_score_thresholds = score_thresholds.duplicate()
 	_relevant_support = relevant_support.duplicate()
 	_requires_earned_evidence = requires_earned_evidence
+	_relevant_issues = relevant_issues.duplicate()
 
 
 func concession_for_score(score: int) -> Dictionary:
@@ -53,6 +56,12 @@ func clause_id_for_rank(rank: int) -> StringName:
 
 func accepts_support(support_id: StringName) -> bool:
 	return _relevant_support.has(support_id)
+
+
+func accepts_evidence(kind: StringName, relevant_issue: StringName) -> bool:
+	if not _relevant_support.has(kind):
+		return false
+	return _relevant_issues.is_empty() or _relevant_issues.has(relevant_issue)
 
 
 func relevant_support_ids() -> Array[StringName]:

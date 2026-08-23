@@ -17,7 +17,7 @@ func _init(catalog: ContentCatalog, workplace: WorkplaceDefinition, seed: int) -
 	for event_id in _workplace.event_ids:
 		var event: EventDefinitionScript = _catalog.events.get(event_id)
 		if event != null:
-			events.append(event)
+			events.append(event.runtime_copy())
 	_director = WorkplaceDirectorScript.new(events, seed)
 
 

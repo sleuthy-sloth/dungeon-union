@@ -65,6 +65,11 @@ func resolve(grievance_id: StringName) -> bool:
 	return state.resolve() if state != null else false
 
 
+func apply_remedy(grievance_id: StringName, remedy_id: StringName) -> bool:
+	var state := _state_for(grievance_id)
+	return state.apply_remedy(remedy_id) if state != null else false
+
+
 func transition_action(grievance_id: StringName, action: StringName) -> bool:
 	var state := _state_for(grievance_id)
 	return state.transition_action(action) if state != null else false

@@ -44,6 +44,28 @@ static func validate(catalog: ContentCatalog) -> Array[String]:
             event_ids[event.id] = true
         if event != null and event.family.is_empty():
             errors.append("event %s has empty family" % event.id)
+        if event != null and not EventDefinitionScript.VALID_KINDS.has(event.event_kind):
+            errors.append("event %s has invalid event kind: %s" % [event.id, event.event_kind])
+        if event != null and event.event_kind == EventDefinitionScript.POSITIVE_KIND and not event.issue.is_empty():
+            errors.append("positive event %s must not reference dispute: %s" % [event.id, event.issue])
+        if event != null and event.presentation_title.strip_edges().is_empty():
+            errors.append("event %s has empty presentation title" % event.id)
+        if event != null and event.presentation_description.strip_edges().is_empty():
+            errors.append("event %s has empty presentation description" % event.id)
+        if event != null and event.visual_pattern.strip_edges().is_empty():
+            errors.append("event %s has empty visual pattern" % event.id)
+        if event != null and event.event_kind == EventDefinitionScript.GRIEVANCE_KIND:
+            if event.evidence_kind.is_empty():
+                errors.append("grievance event %s has empty evidence kind" % event.id)
+            if event.evidence_source.is_empty():
+                errors.append("grievance event %s has empty evidence source" % event.id)
+            if event.evidence_reliability <= 0:
+                errors.append("grievance event %s has non-positive evidence reliability" % event.id)
+            if event.evidence_window_ticks <= 0:
+                errors.append("grievance event %s has non-positive evidence window" % event.id)
+        if event != null and event.event_kind == EventDefinitionScript.POSITIVE_KIND:
+            if not event.evidence_kind.is_empty() or not event.evidence_source.is_empty() or event.evidence_reliability != 0 or event.evidence_window_ticks != 0:
+                errors.append("positive event %s must not author grievance evidence" % event.id)
 
     for worker in catalog.worker_items:
         if worker != null and not worker.job_id.is_empty() and not job_ids.has(worker.job_id):

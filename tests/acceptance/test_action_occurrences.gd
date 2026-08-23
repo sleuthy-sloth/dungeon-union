@@ -7,6 +7,7 @@ static func run(t: TestCase) -> void:
 	_informal_resolution_does_not_manufacture_evidence(t)
 	_all_actions_are_idempotent_and_atomic(t)
 	_occurrences_have_unique_identity_and_active_history_views(t)
+	_runtime_completes_only_after_a_public_remedy(t)
 
 
 static func _informed_controller() -> Dictionary:
@@ -24,8 +25,12 @@ static func _informed_action_fixture(action: StringName) -> Dictionary:
 	var fixture := _informed_controller()
 	var controller: WorkplaceController = fixture.controller
 	var occurrence_id := StringName(controller.read_view().incidents[0].id)
-	if action != &"informal":
+	var sequence: Array[StringName] = [&"informal", &"grievance", &"petition", &"work_to_rule"]
+	var action_index := sequence.find(action)
+	if action_index > 0:
 		controller.apply_command(Commands.ProposeActionCommand.new(&"document", occurrence_id))
+	for prior_action in sequence.slice(0, action_index):
+		controller.apply_command(Commands.ProposeActionCommand.new(prior_action, occurrence_id))
 	fixture["occurrence_id"] = occurrence_id
 	return fixture
 
@@ -34,10 +39,12 @@ static func _informal_resolution_does_not_manufacture_evidence(t: TestCase) -> v
 	var fixture := _informed_action_fixture(&"informal")
 	var controller: WorkplaceController = fixture.controller
 	var result := controller.apply_command(Commands.ProposeActionCommand.new(&"informal", fixture.occurrence_id))
-	var incident: Dictionary = controller.read_view().incident_history[0] if not controller.read_view().get("incident_history", []).is_empty() else controller.read_view().incidents[0]
-	t.check(result.get("executed", false), "informal resolution executes from a reported grievance")
+	var incident: Dictionary = controller.read_view().incidents[0]
+	t.check(result.get("executed", false), "informal escalation executes from a reported grievance")
 	t.equal(incident.get("evidence_score", -1), 0, "informal resolution does not invent testimony")
-	t.equal(incident.get("resolved_action", &""), &"informal", "grievance records the action-aware informal transition")
+	t.equal(incident.get("action_history", []), [&"informal"], "grievance records the action-aware informal step")
+	t.equal(incident.get("resolved_action", &""), &"", "informal step does not invent a remedy")
+	controller.apply_command(Commands.ApplyRemedyCommand.new(fixture.occurrence_id, &"informal_settlement"))
 	controller.free()
 	fixture.root.free()
 
@@ -56,9 +63,10 @@ static func _all_actions_are_idempotent_and_atomic(t: TestCase) -> void:
 		if action == &"informal":
 			t.check(not negotiation_after_first.ratified, "evidence-free informal resolution cannot manufacture a ratified package")
 		var repeated := controller.apply_command(Commands.ProposeActionCommand.new(action, occurrence_id))
-		t.check(not repeated.get("executed", false), "%s terminal repeat is rejected" % action)
+		t.check(not repeated.get("executed", false), "%s ordered repeat is rejected" % action)
 		t.equal(controller.read_view().resources, after_first, "%s repeat cannot change resources" % action)
 		t.equal(controller.apply_command(Commands.EnterNegotiationCommand.new(&"safety_first")).ratified, negotiation_after_first.ratified, "%s repeat cannot flip negotiation" % action)
+		controller.apply_command(Commands.ApplyRemedyCommand.new(occurrence_id, &"settlement"))
 		controller.free()
 		fixture.root.free()
 
@@ -70,6 +78,7 @@ static func _occurrences_have_unique_identity_and_active_history_views(t: TestCa
 	var first_view := controller.read_view()
 	t.check(first_view.has("active_incidents") and first_view.has("incident_history"), "workplace separates active incidents from history")
 	controller.apply_command(Commands.ProposeActionCommand.new(&"informal", first_id))
+	controller.apply_command(Commands.ApplyRemedyCommand.new(first_id, &"settlement"))
 	var same_family: Array[Dictionary] = []
 	for logical_tick in 5000:
 		controller.advance_frame(0.25)
@@ -77,7 +86,7 @@ static func _occurrences_have_unique_identity_and_active_history_views(t: TestCa
 			if incident.get("definition_id", &"") == &"cave_in_risk":
 				same_family.append(incident)
 				break
-			controller.apply_command(Commands.ProposeActionCommand.new(&"informal", StringName(incident.id)))
+			_close_occurrence(controller, incident)
 		if not same_family.is_empty():
 			break
 	t.check(not same_family.is_empty(), "same event family can recur after two workdays")
@@ -86,8 +95,49 @@ static func _occurrences_have_unique_identity_and_active_history_views(t: TestCa
 		t.check(second_id != first_id, "recurring event receives a unique occurrence id")
 		t.equal(same_family[0].get("runtime_id", &""), &"cave_in_risk", "occurrence retains the runtime definition id")
 		controller.apply_command(Commands.ProposeActionCommand.new(&"document", second_id))
-		t.check(controller.apply_command(Commands.ProposeActionCommand.new(&"grievance", second_id)).get("executed", false), "second occurrence is independently documentable and resolvable")
+		t.check(controller.apply_command(Commands.ProposeActionCommand.new(&"informal", second_id)).get("executed", false), "second occurrence starts its own escalation history")
+		t.check(controller.apply_command(Commands.ProposeActionCommand.new(&"grievance", second_id)).get("executed", false), "second occurrence is independently documentable and submittable")
+		t.check(controller.apply_command(Commands.ApplyRemedyCommand.new(second_id, &"settlement")).get("applied", false), "second occurrence resolves only through its remedy")
 		controller.advance_frame(121.0)
 		t.check(not controller.read_view().get("active_incidents", []).is_empty(), "resolving recurrence does not leave the director blocked")
 	controller.free()
 	fixture.root.free()
+
+
+static func _close_occurrence(controller: WorkplaceController, occurrence: Dictionary) -> void:
+	var occurrence_id := StringName(occurrence.id)
+	if StringName(occurrence.get("event_kind", &"grievance")) == &"positive":
+		controller.apply_command(Commands.AcknowledgeEventCommand.new(occurrence_id))
+		return
+	controller.apply_command(Commands.ProposeActionCommand.new(&"informal", occurrence_id))
+	controller.apply_command(Commands.ApplyRemedyCommand.new(occurrence_id, &"settlement"))
+
+
+static func _runtime_completes_only_after_a_public_remedy(t: TestCase) -> void:
+	var command_script: GDScript = load("res://src/workplace/workplace_commands.gd")
+	var constants := command_script.get_script_constant_map()
+	t.check(constants.has("ApplyRemedyCommand"), "playable controller exposes a typed public remedy command")
+	if not constants.has("ApplyRemedyCommand"):
+		return
+	var fixture := _informed_controller()
+	var root: AppRoot = fixture.root
+	var controller: WorkplaceController = fixture.controller
+	var occurrence_id := StringName(controller.read_view().incidents[0].id)
+	controller.apply_command(Commands.ProposeActionCommand.new(&"document", occurrence_id))
+	for action in [&"informal", &"grievance", &"petition", &"work_to_rule"]:
+		var result: Dictionary = controller.apply_command(Commands.ProposeActionCommand.new(action, occurrence_id))
+		t.check(result.get("executed", false), "controller executes sequential %s step" % action)
+	var escalated: Dictionary = controller.read_view()
+	t.equal(escalated.active_incidents.size(), 1, "filed actions keep the occurrence active")
+	t.equal(escalated.active_incidents[0].get("grievance_phase", &""), &"escalated", "controller publishes the escalated non-terminal phase")
+	t.equal(escalated.active_incidents[0].get("action_history", []), [&"informal", &"grievance", &"petition", &"work_to_rule"], "controller publishes ordered escalation history")
+	t.check(root.event_progress_view().active_event_ids.has(&"cave_in_risk"), "filing work-to-rule does not complete the authored runtime")
+	var remedy: Dictionary = controller.apply_command(constants.ApplyRemedyCommand.new(occurrence_id, &"shoring_repair"))
+	t.check(remedy.get("applied", false), "typed remedy command settles the active case")
+	var settled: Dictionary = controller.read_view()
+	t.equal(settled.active_incidents.size(), 0, "settled occurrence leaves the active list")
+	t.equal(settled.incident_history.size(), 1, "settled occurrence remains in history")
+	t.equal(settled.incident_history[0].get("resolved_action", &""), &"shoring_repair", "history records the actual remedy")
+	t.check(not root.event_progress_view().active_event_ids.has(&"cave_in_risk"), "only remedy completion clears the authored runtime")
+	controller.free()
+	root.free()

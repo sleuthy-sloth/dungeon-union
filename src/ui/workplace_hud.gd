@@ -29,8 +29,11 @@ var _right_stack: VBoxContainer
 var _action_grid: GridContainer
 var _document_button: Button
 var _action_buttons: Array[Button] = []
+var _remedy_button: Button
 var _negotiate_button: Button
 var _hall_button: Button
+var _save_button: Button
+var _load_button: Button
 
 
 func _ready() -> void:
@@ -68,9 +71,13 @@ func update_view(view: Dictionary) -> void:
 		if index < incidents.size():
 			var incident: Dictionary = incidents[index]
 			incident_button.set_meta("incident_id", StringName(incident.id))
-			incident_button.text = "⚠ %-15s %s" % [String(incident.get("title", incident.id)).left(15), String(incident.get("grievance_phase", "reported")).to_upper()]
+			if StringName(incident.get("event_kind", &"grievance")) == EventDefinition.POSITIVE_KIND:
+				incident_button.text = "✦ %-15s %s" % [String(incident.get("title", incident.id)).left(15), String(incident.get("completion", "active")).to_upper()]
+			else:
+				incident_button.text = "⚠ %-15s %s" % [String(incident.get("title", incident.id)).left(15), String(incident.get("grievance_phase", "reported")).to_upper()]
 			incident_button.button_pressed = StringName(incident.id) == StringName(view.get("selected_incident_id", &""))
 	_update_case_file(view)
+	_refresh_focus_neighbors()
 	call_deferred(&"_settle_panel_layout")
 	queue_redraw()
 
@@ -121,6 +128,25 @@ func context_text() -> String:
 
 func union_hall_button() -> Button:
 	return _hall_button
+
+
+func focus_initial() -> void:
+	var sequence := _focus_sequence()
+	if not sequence.is_empty():
+		sequence[0].grab_focus()
+
+
+func focus_move(direction: int) -> void:
+	var sequence := _focus_sequence()
+	if sequence.is_empty():
+		return
+	var owner := get_viewport().gui_get_focus_owner()
+	var index := sequence.find(owner)
+	if index < 0:
+		index = 0 if direction >= 0 else sequence.size() - 1
+	else:
+		index = posmod(index + (1 if direction >= 0 else -1), sequence.size())
+	sequence[index].grab_focus()
 
 
 func accessibility_layout_view() -> Dictionary:
@@ -240,13 +266,15 @@ func _build_interface() -> void:
 	_labels.forecast = _label("DOCUMENT A CASE TO FORECAST", Vector2(1132, 401), Vector2(252, 72), 10, _data_font, PAPER)
 	_labels.action = _label("", Vector2(1132, 638), Vector2(238, 112), 11, _body_font, PAPER)
 	_document_button = _button("DOCUMENT TESTIMONY", Vector2(1132, 474), Vector2(238, 34))
-	_document_button.pressed.connect(func() -> void: _request_action(&"document"))
+	_document_button.pressed.connect(_request_primary_occurrence_action)
 	var action_ids: Array[StringName] = [&"informal", &"grievance", &"petition", &"work_to_rule"]
 	for index in action_ids.size():
 		var action := action_ids[index]
 		var action_button := _button(String(action).replace("_", " ").to_upper(), Vector2(1132 + (index % 2) * 122, 516 + int(index / 2) * 39), Vector2(116, 34))
 		action_button.pressed.connect(_request_action.bind(action))
 		_action_buttons.append(action_button)
+	_remedy_button = _button("APPLY REMEDY / SETTLE", Vector2(1132, 598), Vector2(238, 34))
+	_remedy_button.pressed.connect(_request_remedy)
 	_negotiate_button = _button("ENTER NEGOTIATION  ›", Vector2(1132, 598), Vector2(238, 34))
 	_negotiate_button.pressed.connect(func() -> void: command_requested.emit(WorkplaceCommandsScript.EnterNegotiationCommand.new()))
 	_hall_button = _button("UNION HALL  ⌂", Vector2(1132, 758), Vector2(238, 42))
@@ -262,11 +290,18 @@ func _build_interface() -> void:
 			var speed := int(item[2])
 			speed_button.position.x = 1010 + [1, 2, 4].find(speed) * 50
 			speed_button.pressed.connect(func() -> void: command_requested.emit(WorkplaceCommandsScript.SetSpeedCommand.new(speed)))
+	_save_button = _button("SAVE", Vector2(1205, 27), Vector2(95, 30))
+	_save_button.name = "ManualSaveAction"
+	_save_button.pressed.connect(func() -> void: command_requested.emit(WorkplaceCommandsScript.ManualSaveCommand.new()))
+	_load_button = _button("LOAD", Vector2(1307, 27), Vector2(95, 30))
+	_load_button.name = "ManualLoadAction"
+	_load_button.pressed.connect(func() -> void: command_requested.emit(WorkplaceCommandsScript.ManualLoadCommand.new()))
 
 
 func _update_case_file(view: Dictionary) -> void:
 	var selected_id := StringName(view.get("selected_incident_id", &""))
 	var selected: Dictionary = {}
+	_remedy_button.disabled = true
 	for incident in view.get("incidents", []):
 		if StringName(incident.id) == selected_id:
 			selected = incident
@@ -284,16 +319,37 @@ func _update_case_file(view: Dictionary) -> void:
 			_labels.case_body.text = "%s  /  %s\nFATIGUE  %d\nTRUST  %d\nWILLING  %d\nPRIORITIES  %s" % [String(worker.get("species", &"worker")).capitalize(), String(worker.get("job_id", &"worker")).replace("_", " ").capitalize(), int(worker.get("fatigue", 0)), int(worker.get("trust", 0)), int(worker.get("action_willingness", 0)), _priority_copy(worker.get("bargaining_priorities", {}))]
 		_labels.grievance.text = "GRIEVANCE  —\nEVIDENCE   —"
 	else:
-		_labels.case_title.text = "⚠  %s" % String(selected.get("title", selected.id)).to_upper()
+		var positive := StringName(selected.get("event_kind", &"grievance")) == EventDefinition.POSITIVE_KIND
+		_labels.case_title.text = "%s  %s" % ["✦" if positive else "⚠", String(selected.get("title", selected.id)).to_upper()]
 		_labels.case_body.text = "%s\n\nAFFECTED  %s\nPATTERN   %s" % [selected.get("description", "Workplace hazard requires attention."), ", ".join(selected.get("affected_workers", [])), selected.get("pattern", "///")]
-		_labels.grievance.text = "GRIEVANCE  %s\nEVIDENCE   %s" % [selected.get("grievance_phase", "reported"), selected.get("evidence_score", 0)]
+		_labels.grievance.text = "POSITIVE EVENT\nNO GRIEVANCE OR EVIDENCE" if positive else "GRIEVANCE  %s\nEVIDENCE   %s\nSTEPS      %s" % [selected.get("grievance_phase", "reported"), selected.get("evidence_score", 0), " → ".join(selected.get("action_history", []))]
+		_document_button.text = "ACKNOWLEDGE EVENT" if positive else "DOCUMENT TESTIMONY"
+		for button in _action_buttons:
+			button.disabled = positive
+	_remedy_button.disabled = selected.is_empty() or StringName(selected.get("event_kind", &"grievance")) == EventDefinition.POSITIVE_KIND or selected.get("action_history", []).is_empty()
 	var result: Dictionary = view.get("last_action_result", {})
-	_labels.action.text = String(result.get("summary", result.get("blocker", "")))
+	var action_lines: Array[String] = []
+	var result_copy := String(result.get("summary", result.get("blocker", "")))
+	if not result_copy.is_empty():
+		action_lines.append(result_copy)
+	var history: Array = view.get("incident_history", [])
+	if not history.is_empty() and history[-1] is Dictionary:
+		var latest: Dictionary = history[-1]
+		var positive_history := StringName(latest.get("event_kind", &"grievance")) == EventDefinition.POSITIVE_KIND
+		var history_status := String(latest.get("completion", &"acknowledged")) if positive_history else String(latest.get("grievance_phase", &"closed"))
+		action_lines.append("RECENT HISTORY  %s — %s" % [String(latest.get("title", latest.get("id", &"event"))), history_status.to_upper()])
+	_labels.action.text = "\n".join(action_lines)
 	var forecast_lines: Array[String] = []
-	for action in [&"informal", &"grievance", &"petition", &"work_to_rule"]:
-		var forecast: Dictionary = view.get("action_forecasts", {}).get(action, {})
-		var status := "%d ready" % int(forecast.get("ready_count", 0)) if forecast.get("can_execute", false) else String(forecast.get("blocker", "document first")).left(25)
-		forecast_lines.append("%-11s %s" % [String(action).replace("_", " ").to_upper(), status])
+	if not selected.is_empty() and StringName(selected.get("event_kind", &"grievance")) == EventDefinition.POSITIVE_KIND:
+		forecast_lines.append("ACKNOWLEDGE TO ADD TO HISTORY")
+	else:
+		_document_button.text = "DOCUMENT TESTIMONY"
+		for button in _action_buttons:
+			button.disabled = false
+		for action in [&"informal", &"grievance", &"petition", &"work_to_rule"]:
+			var forecast: Dictionary = view.get("action_forecasts", {}).get(action, {})
+			var status := "%d ready" % int(forecast.get("ready_count", 0)) if forecast.get("can_execute", false) else String(forecast.get("blocker", "document first")).left(25)
+			forecast_lines.append("%-11s %s" % [String(action).replace("_", " ").to_upper(), status])
 	_labels.forecast.text = "\n".join(forecast_lines)
 
 
@@ -327,7 +383,7 @@ func _build_scroll_regions() -> void:
 			controls.append(child)
 	_create_scroll_region(Rect2(0, 0, 1440, 66), Vector2(1440, 66), controls.filter(func(control: Control) -> bool: return control.position.y < 66.0))
 	_create_scroll_region(Rect2(18, 84, 310, 758), Vector2(310, 758), controls.filter(func(control: Control) -> bool: return control.position.x < 330.0 and control.position.y >= 66.0))
-	_create_scroll_region(Rect2(1112, 84, 306, 758), Vector2(306, 758), controls.filter(func(control: Control) -> bool: return control.position.x >= 1112.0))
+	_create_scroll_region(Rect2(1112, 84, 306, 758), Vector2(306, 758), controls.filter(func(control: Control) -> bool: return control.position.x >= 1112.0 and control.position.y >= 66.0))
 
 
 func _create_scroll_region(rect: Rect2, base_size: Vector2, controls: Array) -> void:
@@ -388,11 +444,13 @@ func _build_panel_stacks() -> void:
 	_right_stack.add_child(_action_grid)
 	for index in _action_buttons.size():
 		_move_to_flow(_action_buttons[index], _action_grid, 34, "OrganizingAction%02d" % index, 126)
+	_move_to_flow(_remedy_button, _right_stack, 34, "RemedyAction")
 	_move_to_flow(_negotiate_button, _right_stack, 34, "NegotiateAction")
 	_move_to_flow(_labels.action, _right_stack, 60, "ActionResult")
 	_move_to_flow(_hall_button, _right_stack, 42, "UnionHallAction")
 	for button in find_children("*", "Button", true, false):
 		button.focus_entered.connect(_on_focus_entered.bind(button))
+	_refresh_focus_neighbors()
 
 
 func _move_to_flow(control: Control, container: Container, minimum_height: float, control_name: String, minimum_width: float = 0.0) -> void:
@@ -479,6 +537,36 @@ func _ensure_focus_visible(control: Control) -> void:
 		current = current.get_parent()
 
 
+func _focus_sequence() -> Array[Button]:
+	var sequence: Array[Button] = []
+	for button in _worker_buttons:
+		if button.visible and not button.disabled:
+			sequence.append(button)
+	for button in _incident_buttons:
+		if button.visible and not button.disabled:
+			sequence.append(button)
+	for button in [_document_button, _action_buttons[0], _action_buttons[1], _action_buttons[2], _action_buttons[3], _remedy_button, _negotiate_button, _hall_button, _save_button, _load_button]:
+		if button != null and button.visible and not button.disabled:
+			sequence.append(button)
+	return sequence
+
+
+func _refresh_focus_neighbors() -> void:
+	var sequence := _focus_sequence()
+	if sequence.is_empty():
+		return
+	for index in sequence.size():
+		var button := sequence[index]
+		var previous := sequence[posmod(index - 1, sequence.size())]
+		var next := sequence[(index + 1) % sequence.size()]
+		button.focus_neighbor_top = button.get_path_to(previous)
+		button.focus_neighbor_left = button.get_path_to(previous)
+		button.focus_previous = button.get_path_to(previous)
+		button.focus_neighbor_bottom = button.get_path_to(next)
+		button.focus_neighbor_right = button.get_path_to(next)
+		button.focus_next = button.get_path_to(next)
+
+
 func _transformed_control_rect(control: Control) -> Rect2:
 	var transform := control.get_global_transform_with_canvas()
 	var corners := [
@@ -501,6 +589,28 @@ func _request_action(action: StringName) -> void:
 		return
 	var selected_id := StringName(_view.get("selected_incident_id", incidents[0].id))
 	command_requested.emit(WorkplaceCommandsScript.ProposeActionCommand.new(action, selected_id))
+
+
+func _request_primary_occurrence_action() -> void:
+	var incidents: Array = _view.get("incidents", [])
+	if incidents.is_empty():
+		return
+	var selected_id := StringName(_view.get("selected_incident_id", incidents[0].id))
+	for occurrence in incidents:
+		if StringName(occurrence.get("id", &"")) != selected_id:
+			continue
+		if StringName(occurrence.get("event_kind", &"grievance")) == EventDefinition.POSITIVE_KIND:
+			command_requested.emit(WorkplaceCommandsScript.AcknowledgeEventCommand.new(selected_id))
+			return
+	_request_action(&"document")
+
+
+func _request_remedy() -> void:
+	var incidents: Array = _view.get("incidents", [])
+	if incidents.is_empty():
+		return
+	var selected_id := StringName(_view.get("selected_incident_id", incidents[0].id))
+	command_requested.emit(WorkplaceCommandsScript.ApplyRemedyCommand.new(selected_id, &"settlement"))
 
 
 func _label(text: String, position: Vector2, size: Vector2, font_size: int, font: Font, color: Color) -> Label:

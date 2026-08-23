@@ -99,20 +99,23 @@ static func _typed_commands_drive_a_fixed_tick_controller(t: TestCase) -> void:
 		controller.free()
 		root.free()
 		return
-	t.check(documented_view.action_forecasts.grievance.can_execute, "documented case publishes an executable grievance forecast")
-	var action_result: Dictionary = controller.apply_command(commands.ProposeActionCommand.new(&"grievance", first_view.incidents[0].id))
-	t.check(action_result.executed, "documenting an active incident executes through the organizing command API")
-	var resources_after_action: Dictionary = controller.read_view().resources
-	for action in [&"informal", &"grievance", &"petition", &"work_to_rule"]:
-		var terminal_forecast: Dictionary = controller.read_view().action_forecasts[action]
-		t.check(not terminal_forecast.can_execute, "resolved case blocks the %s forecast" % action)
-		t.check(String(terminal_forecast.blocker).contains("complete"), "resolved forecast explains its terminal blocker")
-	var repeated_action: Dictionary = controller.apply_command(commands.ProposeActionCommand.new(&"grievance", first_view.incidents[0].id))
-	t.check(not repeated_action.executed, "the same grievance action cannot execute twice")
-	t.equal(controller.read_view().resources, resources_after_action, "repeated grievance action cannot mint solidarity")
+	t.check(documented_view.action_forecasts.informal.can_execute, "documented case publishes the first executable informal forecast")
 	var prepared_result: Dictionary = controller.apply_command(commands.EnterNegotiationCommand.new(&"safety_first"))
 	t.check(prepared_result.ratified, "documented evidence changes the package into a ratifiable agreement")
 	t.check(int(prepared_result.package.safety.concession_rank) > int(early_result.package.safety.concession_rank), "documented evidence improves the safety clause")
+	for action in [&"informal", &"grievance", &"petition", &"work_to_rule"]:
+		var action_result: Dictionary = controller.apply_command(commands.ProposeActionCommand.new(action, first_view.incidents[0].id))
+		t.check(action_result.executed, "%s executes through the sequential organizing command API" % action)
+	var resources_after_action: Dictionary = controller.read_view().resources
+	for action in [&"informal", &"grievance", &"petition", &"work_to_rule"]:
+		var settled_forecast: Dictionary = controller.read_view().action_forecasts[action]
+		t.check(not settled_forecast.can_execute, "completed ladder blocks the %s forecast" % action)
+		t.check(String(settled_forecast.blocker).contains("remedy"), "completed ladder forecast explains the remedy transition")
+	var repeated_action: Dictionary = controller.apply_command(commands.ProposeActionCommand.new(&"work_to_rule", first_view.incidents[0].id))
+	t.check(not repeated_action.executed, "the same work-to-rule action cannot execute twice")
+	t.equal(controller.read_view().resources, resources_after_action, "repeated grievance action cannot mint solidarity")
+	var remedy_result: Dictionary = controller.apply_command(commands.ApplyRemedyCommand.new(first_view.incidents[0].id, &"shoring_repair"))
+	t.check(remedy_result.applied, "a separate typed remedy settles the fully escalated case")
 	controller.apply_command(commands.SetSpeedCommand.new(4))
 	controller.advance_frame(45.0)
 	var second_view: Dictionary = controller.read_view()

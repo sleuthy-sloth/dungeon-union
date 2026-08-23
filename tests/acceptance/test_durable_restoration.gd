@@ -25,10 +25,10 @@ static func run(t: TestCase) -> void:
 	var simulation: WorkplaceSimulation = load("res://src/workers/workplace_simulation.gd").call(&"restore", 91, {"tick": 37, "workers": worker_views})
 	t.equal(simulation.snapshot(), {"tick": 37, "workers": worker_views}, "worker simulation restores every durable worker field and tick")
 	var grievances := [
-		{"id": &"reported", "issue": &"safety", "affected_workers": [&"nib"], "phase": &"reported", "evidence_score": 0, "deadline_tick": 0, "resolved_action": &""},
-		{"id": &"documented", "issue": &"safety", "affected_workers": [&"nib"], "phase": &"documented", "evidence_score": 2, "deadline_tick": 90, "resolved_action": &""},
-		{"id": &"resolved", "issue": &"safety", "affected_workers": [&"nib"], "phase": &"resolved", "evidence_score": 2, "deadline_tick": 90, "resolved_action": &"petition"},
-		{"id": &"expired", "issue": &"safety", "affected_workers": [&"nib"], "phase": &"expired", "evidence_score": 1, "deadline_tick": 20, "resolved_action": &""},
+		{"id": &"reported", "issue": &"safety", "affected_workers": [&"nib"], "phase": &"reported", "evidence_score": 0, "evidence_records": [], "deadline_tick": 0, "action_history": [], "resolved_action": &""},
+		{"id": &"documented", "issue": &"safety", "affected_workers": [&"nib"], "phase": &"documented", "evidence_score": 2, "evidence_records": [], "deadline_tick": 90, "action_history": [], "resolved_action": &""},
+		{"id": &"resolved", "issue": &"safety", "affected_workers": [&"nib"], "phase": &"resolved", "evidence_score": 2, "evidence_records": [], "deadline_tick": 90, "action_history": [&"informal", &"grievance", &"petition"], "resolved_action": &"ventilation_repair"},
+		{"id": &"expired", "issue": &"safety", "affected_workers": [&"nib"], "phase": &"expired", "evidence_score": 1, "evidence_records": [], "deadline_tick": 20, "action_history": [], "resolved_action": &""},
 	]
 	var grievance_service: GrievanceService = load("res://src/grievances/grievance_service.gd").call(&"restore", grievances, 37)
 	t.equal(grievance_service.snapshot(), grievances, "grievance restore preserves reported/documented/resolved/expired phases and deadlines")

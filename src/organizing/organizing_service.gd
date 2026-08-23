@@ -116,6 +116,21 @@ func execute(proposal: ActionProposalScript) -> Dictionary:
 	}
 
 
+func apply_remedy(grievance_id: StringName, remedy_id: StringName) -> Dictionary:
+	var grievance := _grievance_service.get_state(grievance_id)
+	if grievance == null:
+		return {"applied": false, "grievance_id": grievance_id, "remedy_id": remedy_id, "blocker": "grievance does not exist: %s" % grievance_id}
+	if remedy_id.is_empty():
+		return {"applied": false, "grievance_id": grievance_id, "remedy_id": remedy_id, "blocker": "remedy id is required"}
+	if grievance.phase in GrievanceStateScript.TERMINAL_PHASES:
+		return {"applied": false, "grievance_id": grievance_id, "remedy_id": remedy_id, "blocker": "grievance is terminal: %s" % grievance.phase}
+	if grievance.action_history.is_empty():
+		return {"applied": false, "grievance_id": grievance_id, "remedy_id": remedy_id, "blocker": "take an escalation step before applying a remedy"}
+	if not _grievance_service.apply_remedy(grievance_id, remedy_id):
+		return {"applied": false, "grievance_id": grievance_id, "remedy_id": remedy_id, "blocker": "remedy transition was rejected"}
+	return {"applied": true, "grievance_id": grievance_id, "remedy_id": remedy_id, "blocker": ""}
+
+
 func resources_snapshot() -> Dictionary:
 	return _resources.snapshot()
 
@@ -181,17 +196,16 @@ func _blocker_for(proposal: ActionProposalScript, ready_count: int) -> String:
 		return "action is locked in this slice: %s" % proposal.action
 	if not EXECUTABLE_ACTIONS.has(proposal.action):
 		return "unknown action: %s" % proposal.action
-	if proposal.action != &"informal" and not _has_documented_grievance(proposal.grievance_id):
-		return "requires a documented grievance: %s" % proposal.grievance_id
+	var grievance := _grievance_service.get_state(proposal.grievance_id)
+	if grievance == null:
+		return "requires a grievance: %s" % proposal.grievance_id
+	var transition_blocker := grievance.action_blocker(proposal.action)
+	if not transition_blocker.is_empty():
+		return transition_blocker
 	var required_ready := _required_ready_count(proposal.action)
 	if ready_count < required_ready:
 		return "requires at least %d ready workers" % required_ready
 	return _resource_blocker_for(proposal.action)
-
-
-func _has_documented_grievance(grievance_id: StringName) -> bool:
-	var grievance := _grievance_service.get_state(grievance_id)
-	return grievance != null and grievance.phase == &"documented"
 
 
 func _required_ready_count(action: StringName) -> int:

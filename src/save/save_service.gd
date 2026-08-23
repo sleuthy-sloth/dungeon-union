@@ -17,6 +17,11 @@ func save_campaign(path: String, state: Dictionary) -> Error:
 
 func _write_campaign(path: String, payload: Dictionary, generation: int, timestamp: int) -> Error:
 	var absolute_path := ProjectSettings.globalize_path(path)
+	var directory_path := absolute_path.get_base_dir()
+	if not DirAccess.dir_exists_absolute(directory_path):
+		var directory_error := DirAccess.make_dir_recursive_absolute(directory_path)
+		if directory_error != OK:
+			return directory_error
 	var temp_path := absolute_path + ".tmp"
 	var file := FileAccess.open(temp_path, FileAccess.WRITE)
 	if file == null:

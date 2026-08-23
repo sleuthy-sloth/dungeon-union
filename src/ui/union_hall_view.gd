@@ -28,6 +28,7 @@ var _accessible_font: SystemFont
 var _settings := AccessibilitySettings.new()
 var _scroll: ScrollContainer
 var _content: Control
+var _close_button: Button
 
 
 func _ready() -> void:
@@ -40,6 +41,30 @@ func _ready() -> void:
 func configure(campaign: CampaignState) -> void:
 	_campaign = campaign
 	_refresh()
+
+
+func focus_initial() -> void:
+	var sequence := _focus_sequence()
+	if not sequence.is_empty():
+		sequence[0].grab_focus()
+
+
+func focus_move(direction: int) -> void:
+	var sequence := _focus_sequence()
+	if sequence.is_empty():
+		return
+	var owner := get_viewport().gui_get_focus_owner()
+	var index := sequence.find(owner)
+	if index < 0:
+		index = 0 if direction >= 0 else sequence.size() - 1
+	else:
+		index = posmod(index + (1 if direction >= 0 else -1), sequence.size())
+	sequence[index].grab_focus()
+
+
+func close_view() -> void:
+	visible = false
+	closed.emit()
 
 
 func set_accessibility(settings: AccessibilitySettings) -> void:
@@ -122,11 +147,9 @@ func _build_controls() -> void:
 	var title := _label("LOCAL 666  /  UNION HALL", Vector2(184, 88), Vector2(660, 56), 29, _display_font, COAL)
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_points_label = _label("UPGRADE POINTS  05", Vector2(906, 96), Vector2(190, 35), 14, _data_font, COAL)
-	var close_button := _button("RETURN TO MINE  ×", Vector2(1190, 92), Vector2(196, 42))
-	close_button.pressed.connect(func() -> void:
-		visible = false
-		closed.emit()
-	)
+	_close_button = _button("RETURN TO MINE  ×", Vector2(1190, 92), Vector2(196, 42))
+	_close_button.name = "ReturnToMineAction"
+	_close_button.pressed.connect(close_view)
 	var index := 0
 	for branch in BRANCH_COPY:
 		var copy: Dictionary = BRANCH_COPY[branch]
@@ -134,6 +157,8 @@ func _build_controls() -> void:
 		_label("%s  %s" % [copy.symbol, copy.title], Vector2(x, 660), Vector2(224, 32), 15, _display_font, PAPER)
 		_label(copy.copy, Vector2(x, 703), Vector2(224, 70), 12, _body_font, PAPER)
 		var button := _button("INSTALL  /  1 POINT", Vector2(x, 786), Vector2(224, 42))
+		button.name = "Upgrade_%s" % branch
+		button.set_meta("upgrade_branch", branch)
 		button.pressed.connect(_on_upgrade_pressed.bind(branch))
 		_buttons[branch] = button
 		index += 1
@@ -156,6 +181,7 @@ func _build_scroll_content() -> void:
 		_content.add_child(control)
 	for button in _content.find_children("*", "Button", true, false):
 		button.focus_entered.connect(_on_focus_entered.bind(button))
+	_refresh_focus_neighbors()
 
 
 func _on_focus_entered(control: Control) -> void:
@@ -183,6 +209,34 @@ func _refresh() -> void:
 		var button: Button = _buttons[branch]
 		button.disabled = purchased or int(view.upgrade_points) == 0
 		button.text = "INSTALLED  ✓" if purchased else "INSTALL  /  1 POINT"
+	_refresh_focus_neighbors()
+
+
+func _focus_sequence() -> Array[Button]:
+	var sequence: Array[Button] = []
+	for branch in CampaignState.BRANCHES:
+		var button: Button = _buttons.get(branch)
+		if button != null and button.visible and not button.disabled:
+			sequence.append(button)
+	if _close_button != null and _close_button.visible:
+		sequence.append(_close_button)
+	return sequence
+
+
+func _refresh_focus_neighbors() -> void:
+	var sequence := _focus_sequence()
+	if sequence.is_empty():
+		return
+	for index in sequence.size():
+		var button := sequence[index]
+		var previous := sequence[posmod(index - 1, sequence.size())]
+		var next := sequence[(index + 1) % sequence.size()]
+		button.focus_neighbor_top = button.get_path_to(previous)
+		button.focus_neighbor_left = button.get_path_to(previous)
+		button.focus_previous = button.get_path_to(previous)
+		button.focus_neighbor_bottom = button.get_path_to(next)
+		button.focus_neighbor_right = button.get_path_to(next)
+		button.focus_next = button.get_path_to(next)
 
 
 func _label(text: String, position: Vector2, size: Vector2, font_size: int, font: Font, color: Color) -> Label:

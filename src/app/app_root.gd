@@ -7,8 +7,12 @@ const WorkplaceEventRuntimeScript = preload("res://src/events/workplace_event_ru
 
 signal mode_changed(mode: StringName)
 
+const DEFAULT_CAMPAIGN_SAVE_PATH := "user://dungeon_union/campaign.save"
+
 @export var content_catalog: ContentCatalog
 @export var event_seed := 0
+@export var campaign_save_path := DEFAULT_CAMPAIGN_SAVE_PATH
+@export var recover_campaign_on_startup := true
 
 var current_mode: StringName = &"boot"
 var active_catalog: ContentCatalog
@@ -19,7 +23,17 @@ var event_runtime: WorkplaceEventRuntimeScript
 func _ready() -> void:
     boot()
     if has_node("WorkplaceView") and active_catalog != null:
-        $WorkplaceView.configure(self, active_catalog, event_seed)
+        var resolved_save_path := campaign_save_path
+        var test_path_override := OS.get_environment("DUNGEON_UNION_SAVE_PATH")
+        if campaign_save_path == DEFAULT_CAMPAIGN_SAVE_PATH and not test_path_override.is_empty():
+            resolved_save_path = "" if test_path_override == "disabled" else test_path_override
+        $WorkplaceView.configure(
+            self,
+            active_catalog,
+            event_seed,
+            resolved_save_path,
+            recover_campaign_on_startup
+        )
         change_mode(&"workplace")
 
 

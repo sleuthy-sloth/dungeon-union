@@ -50,6 +50,8 @@ During natural play, record whether the player can:
 - Follow a selected worker, hazard, and grievance through the union-red organizing thread.
 - Distinguish the fume, collapse, wage, and alarm cues from symbols/hatching without relying on color.
 - Find visible keyboard focus and use the worker, action, time, negotiation, and union-hall controls.
+- Move focus with the arrow keys, activate with Enter, open the Union Hall with U, return with B, and still cycle incidents with unmodified Tab.
+- Use the visible Save and Load actions, then confirm the recovered workplace, grievance, resources, event history, and negotiation result match the saved state.
 - Continue after enabling UI scale, high contrast, reduced motion, dyslexia-friendly font, or auto-pause settings requested for access.
 
 Record requested settings and any assistance. Do not ask players to disclose a diagnosis.

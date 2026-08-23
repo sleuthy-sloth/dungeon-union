@@ -38,26 +38,24 @@ func compose(worker_views: Array, grievance_views: Array, resources: Dictionary)
 	)
 
 
-func _evidence_from(grievance_views: Array) -> Dictionary:
-	var safety := 0
-	var maintenance := 0
+func _evidence_from(grievance_views: Array) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var seen: Dictionary[StringName, bool] = {}
 	for raw_grievance in grievance_views:
 		if not raw_grievance is Dictionary:
 			continue
 		var grievance: Dictionary = raw_grievance
-		if StringName(grievance.get("phase", &"reported")) not in [&"documented", &"resolved"]:
+		if StringName(grievance.get("phase", &"reported")) not in [&"documented", &"submitted", &"escalated", &"resolved"]:
 			continue
-		var score := maxi(0, int(grievance.get("evidence_score", 0)))
-		match StringName(grievance.get("issue", &"")):
-			&"cave_in_prevention", &"lantern_fume_exposure", &"unsafe_fumes":
-				safety += score
-			&"maintenance_pay":
-				maintenance += score
-	var result := {}
-	if safety > 0:
-		result[&"fume_testimony"] = safety
-	if maintenance > 0:
-		result[&"tool_ledger"] = maintenance
+		for raw_record in grievance.get("evidence_records", []):
+			if not raw_record is Dictionary:
+				continue
+			var record: Dictionary = raw_record
+			var evidence_id := StringName(record.get("id", &""))
+			if evidence_id.is_empty() or seen.has(evidence_id):
+				continue
+			seen[evidence_id] = true
+			result.append(record.duplicate(true))
 	return result
 
 
