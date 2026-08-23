@@ -5,6 +5,7 @@ static func run(t: TestCase) -> void:
 	var tree: SceneTree = Engine.get_main_loop()
 	var app: AppRoot = load("res://src/app/app_root.tscn").instantiate()
 	tree.root.add_child(app)
+	app.begin_shift(false)
 	var workplace: WorkplaceController = app.get_node("WorkplaceView")
 	var hud: WorkplaceHUD = workplace.get_node("WorkplaceHUD")
 	var hall: UnionHallView = workplace.get_node("UnionHallView")

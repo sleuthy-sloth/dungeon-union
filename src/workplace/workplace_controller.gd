@@ -94,6 +94,16 @@ func configure(
 		$WorkplaceHUD.call_deferred(&"focus_initial")
 
 
+func apply_accessibility(settings: AccessibilitySettings) -> void:
+	accessibility_settings = settings.normalized_copy()
+	if has_node("WorkplaceHUD"):
+		$WorkplaceHUD.set_accessibility(accessibility_settings)
+	if has_node("MineViewport"):
+		$MineViewport.set_accessibility(accessibility_settings)
+	if has_node("UnionHallView"):
+		$UnionHallView.set_accessibility(accessibility_settings)
+
+
 func advance_frame(real_delta: float) -> void:
 	if not _configured or _simulation == null:
 		return

@@ -28,10 +28,7 @@ func set_accessibility(settings: AccessibilitySettings) -> void:
 	$AccessibilityDrawer/HighContrast.button_pressed = _settings.high_contrast
 	$AccessibilityDrawer/ReadableFont.button_pressed = _settings.dyslexia_friendly_font
 	$AccessibilityDrawer/UIScale.value = _settings.ui_scale
-	var readable_font := SystemFont.new()
-	readable_font.font_names = PackedStringArray(["Atkinson Hyperlegible", "Avenir Next", "Arial"] if _settings.dyslexia_friendly_font else ["Avenir Next", "Helvetica Neue", "Arial"])
 	for control in [$ContinueShift, $NewShift, $Accessibility, $AccessibilityDrawer/ReducedMotion, $AccessibilityDrawer/HighContrast, $AccessibilityDrawer/ReadableFont]:
-		control.add_theme_font_override("font", readable_font)
 		control.add_theme_font_size_override("font_size", maxi(14, int(18.0 * _settings.ui_scale)))
 	$Scrim.color = Color("0b1114", 0.54 if _settings.high_contrast else 0.38)
 	$Masthead.modulate = Color("ffffff") if _settings.high_contrast else Color("e8d9b5")

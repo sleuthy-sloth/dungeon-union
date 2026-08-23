@@ -18,23 +18,46 @@ var current_mode: StringName = &"boot"
 var active_catalog: ContentCatalog
 var boot_errors: Array[String] = []
 var event_runtime: WorkplaceEventRuntimeScript
+var accessibility_settings := AccessibilitySettings.new()
 
 
 func _ready() -> void:
     boot()
-    if has_node("WorkplaceView") and active_catalog != null:
-        var resolved_save_path := campaign_save_path
-        var test_path_override := OS.get_environment("DUNGEON_UNION_SAVE_PATH")
-        if campaign_save_path == DEFAULT_CAMPAIGN_SAVE_PATH and not test_path_override.is_empty():
-            resolved_save_path = "" if test_path_override == "disabled" else test_path_override
-        $WorkplaceView.configure(
-            self,
-            active_catalog,
-            event_seed,
-            resolved_save_path,
-            recover_campaign_on_startup
-        )
-        change_mode(&"workplace")
+    if has_node("TitleScreen"):
+        $TitleScreen.continue_requested.connect(func() -> void: begin_shift(true))
+        $TitleScreen.new_shift_requested.connect(func() -> void: begin_shift(false))
+        $TitleScreen.accessibility_changed.connect(_apply_accessibility)
+        $TitleScreen.set_accessibility(accessibility_settings)
+    if has_node("WorkplaceView"):
+        $WorkplaceView.hide()
+    if active_catalog != null:
+        change_mode(&"title")
+
+
+func begin_shift(recover_campaign: bool) -> void:
+    if active_catalog == null or not has_node("WorkplaceView"):
+        return
+    $WorkplaceView.configure(self, active_catalog, event_seed, _resolved_save_path(), recover_campaign)
+    $WorkplaceView.show()
+    if has_node("TitleScreen"):
+        $TitleScreen.hide()
+    change_mode(&"workplace")
+
+
+func _resolved_save_path() -> String:
+    var resolved_save_path := campaign_save_path
+    var test_path_override := OS.get_environment("DUNGEON_UNION_SAVE_PATH")
+    if campaign_save_path == DEFAULT_CAMPAIGN_SAVE_PATH and not test_path_override.is_empty():
+        resolved_save_path = "" if test_path_override == "disabled" else test_path_override
+    return resolved_save_path
+
+
+func _apply_accessibility(settings: AccessibilitySettings) -> void:
+    accessibility_settings = settings.normalized_copy()
+    if has_node("TitleScreen"):
+        $TitleScreen.set_accessibility(accessibility_settings)
+    if has_node("WorkplaceView"):
+        $WorkplaceView.apply_accessibility(accessibility_settings)
 
 
 func boot() -> void:

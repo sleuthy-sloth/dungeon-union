@@ -441,6 +441,19 @@ func _build_panel_stacks() -> void:
 	_right_stack.custom_minimum_size.x = 258
 	_right_stack.add_theme_constant_override("separation", 7)
 	_scaled_contents[2].add_child(_right_stack)
+	var case_texture := TextureRect.new()
+	case_texture.name = "CaseFileTexture"
+	var case_image := Image.load_from_file(ProjectSettings.globalize_path("res://assets/ui/union-pamphlet-panel-v1.png"))
+	if not case_image.is_empty():
+		case_texture.texture = ImageTexture.create_from_image(case_image)
+	case_texture.position = Vector2(-6, -8)
+	case_texture.size = Vector2(318, 776)
+	case_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	case_texture.stretch_mode = TextureRect.STRETCH_SCALE
+	case_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	case_texture.modulate = Color(1, 1, 1, 0.16)
+	case_texture.z_index = -1
+	_scaled_contents[2].add_child(case_texture)
 	_move_to_flow(_labels.case_heading, _right_stack, 35, "CaseHeading")
 	_move_to_flow(_labels.case_title, _right_stack, 54, "CaseTitle")
 	_move_to_flow(_labels.case_body, _right_stack, 118, "CaseNarrative")

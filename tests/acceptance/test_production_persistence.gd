@@ -136,6 +136,7 @@ static func _autosaves_and_startup_recovery_use_the_playable_orchestrator(t: Tes
 	recovered_app.campaign_save_path = SAVE_PATH
 	recovered_app.recover_campaign_on_startup = true
 	tree.root.add_child(recovered_app)
+	recovered_app.begin_shift(true)
 	var recovered: WorkplaceController = recovered_app.get_node("WorkplaceView")
 	t.equal(recovered.durable_snapshot(), newest_valid, "startup loads the newest valid autosave through the playable AppRoot/controller path")
 	t.check(FileAccess.file_exists(SAVE_PATH + ".corrupt"), "startup recovery preserves the corrupt primary save")
