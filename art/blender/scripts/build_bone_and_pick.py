@@ -128,6 +128,26 @@ def build_environment(materials):
     cylinder("AlarmPost", "structure", (6.0, 2.25, 1.15), 0.16, 2.2, brass)
     cylinder("AlarmBell", "structure", (6.0, 2.25, 2.35), 0.38, 0.22, red)
     cube("WorkBench", "midground", (-5.5, 0.7, 0.65), (0.95, 0.45, 0.55), timber, 0.05)
+    # Dense, readable workplace clutter keeps the room from reading as a game-board.
+    for index, point in enumerate([(-5.9, -1.7, 0.38), (-4.9, -1.45, 0.3), (4.45, 0.4, 0.35), (3.8, -1.8, 0.28)]):
+        ore = cube("OreCrate_%02d" % index, "midground", point, (0.42, 0.42, point[2]), timber, 0.06)
+        ore.rotation_euler.z = math.radians(index * 11)
+    for index, point in enumerate([(-6.25, 2.1, 0.22), (-5.7, 2.65, 0.18), (5.05, 3.1, 0.2), (4.45, 3.55, 0.16)]):
+        cylinder("OrePile_%02d" % index, "midground", point, 0.34, point[2] * 2.0, brass)
+    # Union noticeboard and safety pennants are baked art, while Godot remains responsible for readable state text.
+    board = cube("UnionNoticeBoard", "structure", (-6.55, 3.25, 1.5), (0.16, 0.06, 0.92), red, 0.03)
+    board.rotation_euler.z = math.radians(8)
+    for index, x in enumerate([-5.1, -4.2, -3.3]):
+        beam_between("SafetyPennantLine_%02d" % index, "structure", (x, 4.1, 3.0), (x + 0.55, 4.1, 2.45), 0.025, paper)
+        pennant = cube("SafetyPennant_%02d" % index, "structure", (x + 0.3, 4.08, 2.55), (0.22, 0.025, 0.16), red)
+        pennant.rotation_euler.y = math.radians(18)
+    # Broken strata and warm work lamps push the mine toward a storybook set, not a tiled arena.
+    for index, point in enumerate([(-7.0, 0.0, 0.9), (-6.75, 4.45, 1.0), (6.6, -2.7, 0.85), (6.85, 3.6, 1.15)]):
+        outcrop = cube("StrataOutcrop_%02d" % index, "structure", point, (0.72, 0.5, point[2]), coal, 0.16)
+        outcrop.rotation_euler = (math.radians(index * 7), math.radians(index * 11), math.radians(17 * index))
+    for index, point in enumerate([(-2.8, -3.3, 0.55), (2.4, 2.8, 0.6)]):
+        cylinder("WorkLamp_%02d" % index, "midground", point, 0.16, 0.62, ember)
+        light("WorkLampLight_%02d" % index, (point[0], point[1], 1.1), PALETTE["ember"], 180, 1.9)
     # Accessibility-safe dressing: teal fume patch is decorative only; Godot retains hatched overlay/text.
     fumes = cube("FumeDecal", "ground", (0.0, 0.4, -0.02), (1.6, 1.1, 0.015), teal, 0.08)
     fumes.data.materials[0].diffuse_color = rgba(PALETTE["teal"], 0.32)
